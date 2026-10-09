@@ -114,7 +114,8 @@
 
   function formatPrice(num) {
     const amount = Number(num) || 0;
-    return `${CONFIG.CURRENCY_SYMBOL}${new Intl.NumberFormat('en-IN').format(amount)}`;
+    if (amount <= 0) return `${CONFIG.CURRENCY_SYMBOL}—`;
+    return `${CONFIG.CURRENCY_SYMBOL}${new Intl.NumberFormat('en-US').format(amount)}`;
   }
 
   function isItemNew(createdAtStr) {
@@ -148,11 +149,11 @@
   // SUPABASE CLIENT INITIALIZATION
   // ----------------------------------------------------------------------------
   function initSupabase() {
-    const hasKeys = CONFIG.SUPABASE_URL && 
-                    !CONFIG.SUPABASE_URL.includes('YOUR_PROJECT_ID') &&
-                    CONFIG.SUPABASE_ANON_KEY &&
-                    !CONFIG.SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY') &&
-                    window.supabase;
+    const hasKeys = CONFIG.SUPABASE_URL &&
+      !CONFIG.SUPABASE_URL.includes('YOUR_PROJECT_ID') &&
+      CONFIG.SUPABASE_ANON_KEY &&
+      !CONFIG.SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY') &&
+      window.supabase;
 
     if (hasKeys) {
       try {
@@ -723,14 +724,14 @@
     const thumbnailsHtml = galleryItems.length > 1 ? `
       <div class="gallery-thumbnails" role="tablist" aria-label="Saree thumbnails">
         ${galleryItems.map((item, idx) => {
-          const isVid = item.type === 'video';
-          const thumbSrc = isVid ? item.poster : item.url;
-          return `
+      const isVid = item.type === 'video';
+      const thumbSrc = isVid ? item.poster : item.url;
+      return `
             <button type="button" class="thumb-item ${isVid ? 'is-video' : ''} ${idx === 0 ? 'active' : ''}" data-index="${idx}" aria-label="${isVid ? 'Watch Video' : 'View photo ' + (idx + 1)}">
               <img src="${escapeHtml(thumbSrc)}" alt="Thumbnail ${idx + 1}" onerror="this.src='${PLACEHOLDER_IMG}';">
             </button>
           `;
-        }).join('')}
+    }).join('')}
       </div>
     ` : '';
 
