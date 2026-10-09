@@ -35,7 +35,7 @@ const CONFIG = {
 
   // WhatsApp number in international format without '+' or spaces.
   // Format for India: 91 followed by 10-digit phone number -> "919876543210"
-  WHATSAPP_NUMBER: "919876543210",
+  WHATSAPP_NUMBER: "917385121060",
 
   // Currency symbol
   CURRENCY_SYMBOL: "₹",

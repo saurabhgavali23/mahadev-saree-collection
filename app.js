@@ -229,6 +229,22 @@
           <p class="step-desc">${escapeHtml(step.desc)}</p>
         </div>
       `).join('');
+
+      // Admin redirect button below the 3 step cards
+      const adminBtn = document.createElement('div');
+      adminBtn.style.cssText = 'text-align: center; margin-top: 2rem; grid-column: 1 / -1;';
+      adminBtn.innerHTML = `
+        <a href="admin.html" id="how-to-order-admin-btn" title="Go to Store Admin Panel"
+           style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1.25rem;
+                  border: 1px solid var(--color-border, #e2d4c0); border-radius: 9999px;
+                  color: var(--color-text-muted, #888); font-size: 0.78rem; font-weight: 500;
+                  text-decoration: none; transition: all 0.2s ease; background: transparent;"
+           onmouseover="this.style.borderColor='var(--color-primary,#7c1228)';this.style.color='var(--color-primary,#7c1228)';"
+           onmouseout="this.style.borderColor='var(--color-border,#e2d4c0)';this.style.color='var(--color-text-muted,#888)';">
+          🔒 Admin Portal
+        </a>
+      `;
+      howGrid.appendChild(adminBtn);
     }
 
     // About Us Content
