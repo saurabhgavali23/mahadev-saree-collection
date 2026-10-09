@@ -1,73 +1,108 @@
 /**
  * ==============================================================================
- * MAHADEV SAREE COLLECTION - WEBSITE CONFIGURATION
+ * MAHADEV SAREE COLLECTION - CENTRAL CONFIGURATION FILE
  * ==============================================================================
- * Edit this file to update your shop details, WhatsApp number, Google Sheet URL,
- * and text sections. No coding knowledge required!
+ * Edit this file to add your Supabase credentials, WhatsApp number, shop details,
+ * and text sections.
  * ==============================================================================
  */
 
 const CONFIG = {
   // ----------------------------------------------------------------------------
-  // 1. SHOP BRANDING & CONTACT
+  // 1. SUPABASE BACKEND CREDENTIALS
+  // ----------------------------------------------------------------------------
+  // Find these in your Supabase Dashboard:
+  // Project Settings -> API -> Project URL and Project API Keys (anon / public)
+  //
+  // NOTE: The 'anon' key is SAFE to be public. It is protected by Row Level Security.
+  // NEVER use or expose the 'service_role' secret key here!
+  SUPABASE_URL: "https://ixlkxdhifffzzvdckycd.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_8J_lk1nUhIZmm4A3o2_UAg_lwjpdPAH",
+
+  // Storage buckets created in Supabase
+  STORAGE_BUCKET: "saree-images",
+  STORAGE_VIDEO_BUCKET: "saree-videos",
+
+  // Video limits
+  MAX_VIDEO_SIZE_MB: 15,
+  MAX_VIDEO_DURATION_SEC: 15,
+
+  // ----------------------------------------------------------------------------
+  // 2. SHOP BRANDING & CONTACT
   // ----------------------------------------------------------------------------
   SHOP_NAME: "Mahadev Saree Collection",
   SHOP_TAGLINE: "Pure Elegance in Every Weave • Premium Silk, Banarasi & Handloom Sarees",
-  
-  // WhatsApp Number in international format without '+' or spaces.
-  // Example for India: 91 followed by your 10-digit number -> "919876543210"
+
+  // WhatsApp number in international format without '+' or spaces.
+  // Format for India: 91 followed by 10-digit phone number -> "919876543210"
   WHATSAPP_NUMBER: "919876543210",
 
-  // Currency symbol displayed across the website
+  // Currency symbol
   CURRENCY_SYMBOL: "₹",
 
-  // ----------------------------------------------------------------------------
-  // 2. GOOGLE SHEET CSV DATA SOURCE
-  // ----------------------------------------------------------------------------
-  // To get your published CSV URL:
-  // 1. In Google Sheets: File > Share > Publish to web
-  // 2. Choose 'Entire Document' or your sheet tab, and format: 'Comma-separated values (.csv)'
-  // 3. Click 'Publish', copy the generated URL, and paste it below.
-  //
-  // Leave empty ("") to test with the built-in sample sarees below.
-  SHEET_CSV_URL: "",
-
-  // How long to cache the sheet data in minutes before checking for updates (default: 5 mins)
+  // How long to cache catalog data in sessionStorage (in minutes)
   CACHE_TTL_MINUTES: 5,
 
   // ----------------------------------------------------------------------------
-  // 3. ABOUT US SECTION
+  // 3. ADMIN DROPDOWN SUGGESTIONS (For quick entry in admin form)
+  // ----------------------------------------------------------------------------
+  CATEGORY_SUGGESTIONS: [
+    "Bridal",
+    "Festive",
+    "Party Wear",
+    "Handloom",
+    "Casual",
+    "Traditional",
+    "Contemporary"
+  ],
+
+  FABRIC_SUGGESTIONS: [
+    "Pure Silk",
+    "Banarasi Silk",
+    "Kanjivaram Silk",
+    "Chanderi Silk",
+    "Tussar Silk",
+    "Organza Silk",
+    "Pure Georgette",
+    "Pure Chiffon",
+    "Tissue Silk",
+    "Linen Silk",
+    "Cotton Silk"
+  ],
+
+  // ----------------------------------------------------------------------------
+  // 4. ABOUT US SECTION
   // ----------------------------------------------------------------------------
   ABOUT: {
     TITLE: "About Mahadev Saree Collection",
     SUBTITLE: "Crafted with passion, delivered with love",
-    DESCRIPTION_P1: "Welcome to Mahadev Saree Collection, your destination for authentic Indian handlooms, regal bridal silks, and contemporary festive wear. Each saree in our collection is handpicked directly from traditional master weavers across Varanasi, Kanchipuram, Chanderi, and Bengal.",
-    DESCRIPTION_P2: "We believe every saree tells a story of heritage, grace, and artistry. By bypassing middlemen, we bring you genuine weaves and pure zari craftsmanship at honest, direct-from-weaver prices.",
+    DESCRIPTION_P1: "Welcome to Mahadev Saree Collection, your premier boutique for authentic Indian handlooms, regal bridal silks, and contemporary festive wear. Each saree in our catalog is handpicked directly from traditional master weavers across Varanasi, Kanchipuram, Chanderi, and Bengal.",
+    DESCRIPTION_P2: "We believe every saree tells a timeless story of heritage, grace, and artistry. By bypassing middlemen, we bring you genuine weaves and pure zari craftsmanship at direct weaver prices.",
     HIGHLIGHTS: [
       { icon: "✨", title: "100% Authentic Handloom", desc: "Certified pure silk & genuine zari work" },
-      { icon: "🧵", title: "Direct Weaver Pricing", desc: "No middleman markups or hidden fees" },
-      { icon: "📦", title: "Pan-India Safe Delivery", desc: "Insured shipping with tracking updates" },
+      { icon: "🧵", title: "Direct Weaver Pricing", desc: "Honest pricing with no middleman markups" },
+      { icon: "📦", title: "Pan-India Safe Delivery", desc: "Insured shipping with live tracking updates" },
       { icon: "💬", title: "Personal Video Shopping", desc: "Inspect any saree live over WhatsApp call" }
     ]
   },
 
   // ----------------------------------------------------------------------------
-  // 4. HOW ORDERING WORKS (3 SIMPLE STEPS)
+  // 5. HOW ORDERING WORKS (3 SIMPLE STEPS)
   // ----------------------------------------------------------------------------
   HOW_TO_ORDER: {
-    TITLE: "How to Order in 3 Easy Steps",
-    SUBTITLE: "No complicated cart or checkout — direct personal assistance on WhatsApp",
+    TITLE: "How to Order in 3 Simple Steps",
+    SUBTITLE: "No complicated checkout — personalized, friendly shopping on WhatsApp",
     STEPS: [
       {
         step: "1",
         title: "Browse & Select",
-        desc: "Explore our catalog and find your favorite saree. Click on 'Order on WhatsApp' on the saree details page.",
+        desc: "Explore our catalog and find your dream saree. Watch the drape video and click 'Order on WhatsApp' on the saree details page.",
         icon: "📱"
       },
       {
         step: "2",
-        title: "Chat with Us",
-        desc: "A pre-filled message with the saree ID, name, and link opens in WhatsApp. Request more photos or a live video preview.",
+        title: "WhatsApp Us",
+        desc: "A pre-filled message with the saree ID, name, price, and link opens automatically. Ask questions or request live video verification.",
         icon: "💬"
       },
       {
@@ -80,21 +115,21 @@ const CONFIG = {
   },
 
   // ----------------------------------------------------------------------------
-  // 5. RETURN & EXCHANGE POLICY
+  // 6. RETURN & EXCHANGE POLICY
   // ----------------------------------------------------------------------------
   RETURN_POLICY: {
     TITLE: "Return & Exchange Policy",
-    SUBTITLE: "Clear, transparent, and customer-first policies",
+    SUBTITLE: "Honest, transparent, and customer-first service",
     POINTS: [
-      "7-Day Exchange Window: If you receive a damaged or incorrect saree, notify us within 7 days of delivery with an unboxing video.",
-      "Condition: The saree must be unworn, unwashed, with original tags, blouse piece intact, and folding preserved.",
-      "Color Variation: We shoot in natural studio lighting. Slight 5-10% hue variation due to device screen settings is normal for handlooms.",
-      "Cancellation: Orders can be cancelled before dispatch without any cancellation fee."
+      "7-Day Exchange Window: If you receive a damaged or incorrect saree, notify us within 7 days with a clear unboxing video.",
+      "Condition: Saree must be unworn, unwashed, with all original tags, folding intact, and unstitched blouse piece attached.",
+      "Color Variation: Authentic handlooms shot under natural studio lights may show a minor 5-10% hue variation depending on screen calibration.",
+      "Dispatch Cancellation: Orders can be cancelled anytime before courier dispatch with an immediate 100% refund."
     ]
   },
 
   // ----------------------------------------------------------------------------
-  // 6. FOOTER & CONTACT DETAILS
+  // 7. FOOTER & CONTACT DETAILS
   // ----------------------------------------------------------------------------
   FOOTER: {
     ADDRESS: "Shop No. 12, Heritage Silk Market, Ring Road, Surat, Gujarat 395002",
@@ -105,14 +140,13 @@ const CONFIG = {
   },
 
   // ----------------------------------------------------------------------------
-  // 7. BUILT-IN FALLBACK SAMPLE DATA
+  // 8. DEMO / FALLBACK DATA
   // ----------------------------------------------------------------------------
-  // Used automatically when SHEET_CSV_URL is empty or if offline.
-  // Columns correspond exactly to the Google Sheet specification:
-  // id | name | fabric | color | pattern | border | category | occasion | description | price | image_url | extra_images | status | created_at
+  // Displayed automatically if SUPABASE_URL still has 'YOUR_PROJECT_ID' so you can
+  // test the site immediately before connecting your Supabase project.
   FALLBACK_DATA: [
     {
-      id: "MSC-101",
+      id: 101,
       name: "Kanjivaram Pure Silk Saree with Gold Zari Pallu",
       fabric: "Pure Silk",
       color: "Crimson Red",
@@ -122,13 +156,18 @@ const CONFIG = {
       occasion: "Wedding / Reception",
       description: "Magnificent heirloom Kanjivaram silk saree woven with 2g pure gold zari. Features intricate peacock and chakra motifs along the traditional korvai border. Paired with a running unstitched blouse piece.",
       price: 14500,
-      image_url: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=900&q=80",
-      extra_images: "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=900&q=80,https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=900&q=80",
+      images: [
+        "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80",
+        "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=1000&q=80",
+        "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1000&q=80"
+      ],
+      video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+      video_poster: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80",
       status: "Available",
-      created_at: "2026-10-06"
+      created_at: new Date(Date.now() - 2 * 86400000).toISOString()
     },
     {
-      id: "MSC-102",
+      id: 102,
       name: "Banarasi Katan Silk Saree in Emerald Green",
       fabric: "Banarasi Silk",
       color: "Emerald Green",
@@ -138,13 +177,17 @@ const CONFIG = {
       occasion: "Festivals / Sangeet",
       description: "Handcrafted Banarasi katan silk saree featuring delicate floral kadwa butas across the body and an opulent meenakari zari border. Comes with matching brocade blouse piece.",
       price: 8900,
-      image_url: "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=900&q=80",
-      extra_images: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=900&q=80",
+      images: [
+        "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=1000&q=80",
+        "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80"
+      ],
+      video_url: null,
+      video_poster: null,
       status: "Available",
-      created_at: "2026-10-05"
+      created_at: new Date(Date.now() - 3 * 86400000).toISOString()
     },
     {
-      id: "MSC-103",
+      id: 103,
       name: "Pastel Pink Chanderi Silk Saree with Zari Motifs",
       fabric: "Chanderi Silk",
       color: "Pastel Pink",
@@ -154,13 +197,16 @@ const CONFIG = {
       occasion: "Day Weddings / Engagement",
       description: "Lightweight and airy Chanderi silk saree with a sheer texture and glistening gold zari coin butis. Ideal for modern celebrations and day festivities.",
       price: 4950,
-      image_url: "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=900&q=80",
-      extra_images: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=900&q=80",
+      images: [
+        "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1000&q=80"
+      ],
+      video_url: null,
+      video_poster: null,
       status: "Available",
-      created_at: "2026-10-04"
+      created_at: new Date(Date.now() - 4 * 86400000).toISOString()
     },
     {
-      id: "MSC-104",
+      id: 104,
       name: "Royal Navy Blue Tussar Silk Handloom Saree",
       fabric: "Tussar Silk",
       color: "Navy Blue",
@@ -170,13 +216,16 @@ const CONFIG = {
       occasion: "Pooja / Traditional Gatherings",
       description: "Rich textured wild Tussar silk saree adorned with artisanal Madhubani folk motifs painted with natural dyes. Authentic handloom with Silk Mark guarantee.",
       price: 6750,
-      image_url: "https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&w=900&q=80",
-      extra_images: "",
+      images: [
+        "https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&w=1000&q=80"
+      ],
+      video_url: null,
+      video_poster: null,
       status: "Sold",
-      created_at: "2026-09-20"
+      created_at: new Date(Date.now() - 18 * 86400000).toISOString()
     },
     {
-      id: "MSC-105",
+      id: 105,
       name: "Sunset Mustard Organza Silk Floral Embroidered Saree",
       fabric: "Organza Silk",
       color: "Mustard Yellow",
@@ -186,14 +235,18 @@ const CONFIG = {
       occasion: "Haldi / Mehendi",
       description: "Dreamy sheer organza silk drape with subtle sheen, delicate pastel threadwork flowers, and a designer scalloped cutwork border. Feather-light and stylish.",
       price: 5200,
-      image_url: "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=900&q=80",
-      extra_images: "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=900&q=80",
+      images: [
+        "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=1000&q=80",
+        "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1000&q=80"
+      ],
+      video_url: null,
+      video_poster: null,
       status: "Available",
-      created_at: "2026-10-07"
+      created_at: new Date(Date.now() - 1 * 86400000).toISOString()
     },
     {
-      id: "MSC-106",
-      name: "Deep Wine Georgette Saree with Sequins Work",
+      id: 106,
+      name: "Deep Wine Georgette Saree with Micro Sequins",
       fabric: "Pure Georgette",
       color: "Wine Burgundy",
       pattern: "All-Over Micro Sequins",
@@ -202,42 +255,13 @@ const CONFIG = {
       occasion: "Cocktail / Evening Reception",
       description: "Fluid pure georgette drape in dramatic wine shade, elevated with tone-on-tone twinkling micro-sequins. Flows gracefully and hugs your silhouette effortlessly.",
       price: 7400,
-      image_url: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=900&q=80",
-      extra_images: "",
+      images: [
+        "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80"
+      ],
+      video_url: null,
+      video_poster: null,
       status: "Available",
-      created_at: "2026-09-15"
-    },
-    {
-      id: "MSC-107",
-      name: "Classic Ivory & Gold Tissue Silk Saree",
-      fabric: "Tissue Silk",
-      color: "Ivory White",
-      pattern: "Metallic Shimmer Weave",
-      border: "Heavy Zari Pallu",
-      category: "Bridal",
-      occasion: "Temple Weddings / Onam",
-      description: "Gleaming ivory and spun gold tissue silk saree inspired by vintage royal aesthetics. A statement piece that catches light from every angle.",
-      price: 11200,
-      image_url: "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=900&q=80",
-      extra_images: "https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&w=900&q=80",
-      status: "Sold",
-      created_at: "2026-08-30"
-    },
-    {
-      id: "MSC-108",
-      name: "Peach Chiffon Hand-Dyed Bandhani Saree",
-      fabric: "Pure Chiffon",
-      color: "Peach Orange",
-      pattern: "Traditional Bandhani",
-      border: "Gota Patti Border",
-      category: "Festive",
-      occasion: "Puja / Family Gathering",
-      description: "Authentic tie-and-dye Bandhani crafted on butter-soft pure chiffon fabric with delicate golden gota patti border hand-stitched by Rajasthani artisans.",
-      price: 3850,
-      image_url: "https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&w=900&q=80",
-      extra_images: "",
-      status: "Available",
-      created_at: "2026-10-08"
+      created_at: new Date(Date.now() - 25 * 86400000).toISOString()
     }
   ]
 };

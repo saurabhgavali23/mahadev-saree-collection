@@ -36,14 +36,19 @@
   <!-- App Stylesheet -->
   <link rel="stylesheet" href="styles.css">
 
-  <!-- PapaParse for parsing Google Sheet CSV via cdnjs -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Supabase JS Client (Pinned Version from CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.1/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
   <!-- Top Announcement Bar -->
   <div class="announcement-bar" role="banner">
     <span>✨ Authentic Handlooms Direct From Weavers • <span class="highlight">Direct WhatsApp Ordering</span> • Pan India Insured Shipping</span>
+  </div>
+
+  <!-- Demo Mode Banner (Visible only when Supabase keys are not yet configured) -->
+  <div id="demo-mode-banner" class="demo-banner">
+    ⚠️ <strong>Demo Mode:</strong> Showing sample sarees. Add your Supabase URL & Anon Key in <code>config.js</code> to connect your live database.
   </div>
 
   <!-- Header -->
@@ -55,7 +60,7 @@
       </a>
 
       <div class="header-actions">
-        <a href="#how-to-order" class="btn-secondary" style="font-size: 0.8rem; padding: 0.35rem 0.75rem; border-radius: 9999px;">
+        <a href="#how-to-order" class="btn-secondary" style="font-size: 0.8rem; padding: 0.35rem 0.75rem; border-radius: 9999px; min-height: 36px;">
           How to Order
         </a>
         <a id="header-wa-link" href="#" target="_blank" rel="noopener noreferrer" class="btn-header-wa" aria-label="Chat with us on WhatsApp">
@@ -204,17 +209,17 @@
         <div id="empty-state" class="state-box" style="display: none;">
           <div class="state-icon">🔍</div>
           <h3 class="state-title">No Sarees Found</h3>
-          <p class="state-desc">We couldn't find any sarees matching your selected filters or search terms. Try loosening your criteria.</p>
+          <p class="state-desc">We couldn't find any sarees matching your selected filters or search terms. Try clearing your filters.</p>
           <div class="state-actions">
             <button id="btn-empty-reset" class="btn-primary">Clear All Filters</button>
           </div>
         </div>
 
-        <!-- Error State (Shown if sheet fails to load) -->
+        <!-- Error State (Shown if Supabase fetch fails) -->
         <div id="error-state" class="state-box" style="display: none;">
           <div class="state-icon">⚠️</div>
           <h3 class="state-title">Unable to Load Catalog</h3>
-          <p id="error-message" class="state-desc">Could not connect to the Google Sheet. Please check your internet connection or verify the published CSV URL.</p>
+          <p id="error-message" class="state-desc">Could not connect to the database. Please check your internet connection or verify your Supabase settings.</p>
           <div class="state-actions">
             <button id="btn-retry" class="btn-primary">Retry</button>
             <button id="btn-load-fallback" class="btn-secondary">Load Sample Catalog</button>
@@ -353,9 +358,14 @@
 
       <div class="footer-bottom">
         <p id="footer-copyright">© 2026 Mahadev Saree Collection. All rights reserved.</p>
-        <button id="btn-force-refresh" class="footer-refresh-btn" title="Clear cached data and reload live sheet">
-          🔄 Refresh Catalog Data
-        </button>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <button id="btn-force-refresh" class="footer-admin-link" title="Clear cached data and reload live database">
+            🔄 Refresh Catalog
+          </button>
+          <a href="admin.html" class="footer-admin-link" title="Store Admin Login">
+            🔒 Admin Portal
+          </a>
+        </div>
       </div>
     </div>
   </footer>
@@ -388,7 +398,7 @@
     <span id="toast-message">Link copied to clipboard!</span>
   </div>
 
-  <!-- Load Config & Core Application Scripts -->
+  <!-- Scripts -->
   <script src="config.js"></script>
   <script src="app.js" defer></script>
 </body>
