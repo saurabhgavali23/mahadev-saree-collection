@@ -827,8 +827,8 @@
       return;
     }
 
-    if (isNaN(price) || price < 0) {
-      showToast('Please enter a valid price.');
+    if (isNaN(price) || price <= 0) {
+      showToast('Please enter a valid price greater than zero.');
       dom.inputPrice.focus();
       return;
     }
