@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- Disallow search engines from indexing the admin page -->
+  <meta name="robots" content="noindex, nofollow">
+
+  <title>Admin Portal | Mahadev Saree Collection</title>
+  <meta name="theme-color" content="#1e293b">
+
+  <!-- Google Fonts Preconnect & Stylesheet -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Unified Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Supabase JS Client (Pinned Version from CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.48.1/dist/umd/supabase.min.js"></script>
+</head>
+<body class="admin-body">
+
+  <!-- Admin Navigation Bar -->
+  <header class="admin-header">
+    <div class="container admin-header-inner">
+      <div class="admin-brand-wrap">
+        <a href="index.html" style="font-family: var(--font-serif); font-size: 1.15rem; font-weight: 700; color: var(--color-primary);" id="admin-shop-title">
+          Mahadev Saree Collection
+        </a>
+        <span class="admin-badge">Admin</span>
+      </div>
+
+      <div class="admin-nav-actions">
+        <span id="admin-user-email" class="admin-user-pill"></span>
+        <a href="index.html" class="btn-secondary" style="font-size: 0.8rem; padding: 0.35rem 0.75rem; min-height: 36px;" title="View public storefront">
+          🛍️ View Store
+        </a>
+        <button id="btn-logout" class="btn-primary" style="background-color: #ef4444; font-size: 0.8rem; padding: 0.35rem 0.75rem; min-height: 36px; display: none;">
+          Log Out
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       SECTION 1: ADMIN LOGIN VIEW
+       ========================================================================= -->
+  <div id="auth-view" class="auth-wrapper">
+    <div class="auth-card">
+      <div class="auth-logo-icon">🔐</div>
+      <h1 class="auth-title">Admin Sign In</h1>
+      <p class="auth-sub">Manage your sarees, prices, and inventory</p>
+
+      <div id="login-alert" class="alert-box alert-error"></div>
+
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email" class="form-label">Email Address</label>
+          <input 
+            type="email" 
+            id="login-email" 
+            class="form-input" 
+            placeholder="admin@mahadevsaree.com" 
+            required 
+            autocomplete="email"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="login-password" class="form-label">Password</label>
+          <input 
+            type="password" 
+            id="login-password" 
+            class="form-input" 
+            placeholder="••••••••••••" 
+            required 
+            autocomplete="current-password"
+          >
+        </div>
+
+        <button type="submit" id="btn-login" class="btn-primary" style="width: 100%; margin-top: 0.5rem;">
+          Sign In to Dashboard
+        </button>
+      </form>
+
+      <div style="margin-top: 1.5rem; font-size: 0.76rem; color: #64748b; line-height: 1.4; text-align: left; background-color: #f8fafc; padding: 0.75rem; border-radius: 6px; border: 1px solid #e2e8f0;">
+        💡 <strong>First time setup:</strong> Create your admin user in the <strong>Supabase Dashboard &gt; Authentication &gt; Users &gt; Add User</strong>.
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       SECTION 2: ADMIN DASHBOARD (When authenticated)
+       ========================================================================= -->
+  <main id="dashboard-view" class="admin-main">
+    <div class="container">
+      
+      <!-- Top Tabs Switcher -->
+      <nav class="admin-tabs" aria-label="Admin tabs">
+        <button type="button" id="tab-form-btn" class="admin-tab-btn active">
+          ➕ <span id="form-tab-label">Add New Saree</span>
+        </button>
+        <button type="button" id="tab-list-btn" class="admin-tab-btn">
+          📋 Manage Sarees (<span id="total-sarees-count">0</span>)
+        </button>
+        <button type="button" id="tab-cleanup-btn" class="admin-tab-btn">
+          🧹 Storage Cleanup (<span id="orphan-tab-badge">Scan</span>)
+        </button>
+      </nav>
+
+      <!-- -------------------------------------------------------------------
+           TAB 1: ADD / EDIT SAREE FORM
+           ------------------------------------------------------------------- -->
+      <section id="tab-form-content">
+        <div class="admin-card">
+          
+          <div class="admin-card-header">
+            <div>
+              <h2 id="form-section-title" class="admin-card-title">Add New Saree</h2>
+              <p id="form-section-desc" style="font-size: 0.82rem; color: #64748b;">
+                Add saree specifications and upload high-resolution photos
+              </p>
+            </div>
+            <button type="button" id="btn-cancel-edit" class="btn-secondary" style="display: none; font-size: 0.8rem; padding: 0.35rem 0.75rem;">
+              Cancel Edit
+            </button>
+          </div>
+
+          <form id="saree-form">
+            <!-- Hidden ID field for updates -->
+            <input type="hidden" id="saree-edit-id" value="">
+
+            <!-- Photo Picker Area -->
+            <div class="form-group">
+              <label class="form-label">
+                Saree Photos <span style="color: #ef4444;">*</span>
+                <small style="color: #64748b; font-weight: normal;">(First photo will be the main cover image)</small>
+              </label>
+
+              <div class="photo-picker-box">
+                <!-- Hidden Native File Inputs -->
+                <input type="file" id="image-files-input" accept="image/*" multiple style="display: none;">
+                <input type="file" id="camera-file-input" accept="image/*" capture="environment" style="display: none;">
+
+                <div class="photo-picker-buttons">
+                  <button type="button" id="btn-choose-photos" class="btn-primary" style="font-size: 0.85rem; padding: 0.55rem 1rem;">
+                    📁 Select from Gallery
+                  </button>
+                  <button type="button" id="btn-take-photo" class="btn-secondary" style="font-size: 0.85rem; padding: 0.55rem 1rem;">
+                    📸 Take Photo (Camera)
+                  </button>
+                </div>
+                <p class="photo-picker-hint">
+                  Auto-compresses large camera photos to max 1200px before uploading to save storage & bandwidth.
+                </p>
+              </div>
+
+              <!-- Photo Previews Grid (with reorder & remove) -->
+              <div id="photo-preview-grid" class="photo-preview-grid">
+                <!-- Injected dynamically by admin.js -->
+              </div>
+            </div>
+
+            <!-- Video Section (Optional • 1 video per saree) -->
+            <div class="form-group">
+              <label class="form-label">
+                Saree Drape Video <small style="color: #64748b; font-weight: normal;">(Optional • 1 video per saree)</small>
+              </label>
+
+              <div class="video-picker-box">
+                <!-- Mode Switch: Upload File or Paste Link -->
+                <div class="video-mode-switch">
+                  <button type="button" id="btn-mode-video-upload" class="btn-video-mode active">
+                    📁 Upload Video
+                  </button>
+                  <button type="button" id="btn-mode-video-link" class="btn-video-mode">
+                    🔗 Paste YouTube / Video Link
+                  </button>
+                </div>
+
+                <!-- Option A: File Picker (Max 15MB, Max 15s) -->
+                <div id="video-upload-pane">
+                  <input type="file" id="video-file-input" accept="video/mp4,video/webm,video/*" style="display: none;">
+                  <input type="file" id="video-camera-input" accept="video/mp4,video/webm,video/*" capture="environment" style="display: none;">
+
+                  <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+                    <button type="button" id="btn-choose-video" class="btn-primary" style="font-size: 0.85rem; padding: 0.55rem 1rem;">
+                      📁 Choose Video File
+                    </button>
+                    <button type="button" id="btn-record-video" class="btn-secondary" style="font-size: 0.85rem; padding: 0.55rem 1rem;">
+                      🎥 Record Video
+                    </button>
+                  </div>
+                  <p class="photo-picker-hint">
+                    Max duration: <strong>15 seconds</strong> • Max size: <strong>15 MB</strong>.<br>
+                    Record at 720p or trim your video. First frame will automatically become the poster image.
+                  </p>
+                </div>
+
+                <!-- Option B: Paste Video Link -->
+                <div id="video-link-pane" style="display: none;">
+                  <div style="display: flex; gap: 0.5rem;">
+                    <input 
+                      type="url" 
+                      id="input-video-link" 
+                      class="form-input" 
+                      placeholder="e.g. https://www.youtube.com/watch?v=... or direct https://...mp4"
+                    >
+                    <button type="button" id="btn-apply-video-link" class="btn-primary" style="font-size: 0.82rem; white-space: nowrap;">
+                      Apply Link
+                    </button>
+                  </div>
+                  <p class="photo-picker-hint">
+                    Supports YouTube links (youtube.com or youtu.be) or direct HTTPS .mp4/.webm links.
+                  </p>
+                </div>
+
+                <!-- Video Preview Card (Shown when video is attached) -->
+                <div id="video-preview-wrap" style="display: none; margin-top: 1rem; text-align: center;">
+                  <div class="video-preview-card" style="margin: 0 auto;">
+                    <video id="video-preview-player" class="video-preview-media" controls playsinline preload="metadata" style="display: none;"></video>
+                    <img id="video-preview-thumb" class="video-preview-media" src="" alt="Video Poster" style="display: none;">
+                  </div>
+                  <div id="video-preview-info" style="font-size: 0.78rem; color: #475569; margin-top: 0.4rem; font-weight: 600;"></div>
+                  <button type="button" id="btn-remove-video" class="btn-remove-video">
+                    🗑️ Remove Video
+                  </button>
+                </div>
+
+                <!-- Hidden video & canvas for duration validation & poster frame extraction -->
+                <video id="video-hidden-validator" preload="metadata" style="display: none;"></video>
+                <canvas id="video-poster-canvas" style="display: none;"></canvas>
+
+                <!-- Hidden inputs to hold video URL & poster -->
+                <input type="hidden" id="saree-video-url" value="">
+                <input type="hidden" id="saree-video-poster" value="">
+              </div>
+            </div>
+
+            <!-- Basic Details Grid -->
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label for="input-name" class="form-label">Saree Name / Title <span style="color: #ef4444;">*</span></label>
+                <input 
+                  type="text" 
+                  id="input-name" 
+                  class="form-input" 
+                  placeholder="e.g. Kanjivaram Pure Silk Saree with Gold Zari" 
+                  required
+                >
+              </div>
+
+              <div class="form-group">
+                <label for="input-price" class="form-label">Price (in ₹) <span style="color: #ef4444;">*</span></label>
+                <input 
+                  type="number" 
+                  id="input-price" 
+                  class="form-input" 
+                  placeholder="e.g. 14500" 
+                  min="0" 
+                  step="50" 
+                  required
+                >
+              </div>
+            </div>
+
+            <!-- Fabric & Category Grid with Datalists -->
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label for="input-fabric" class="form-label">Fabric</label>
+                <input 
+                  type="text" 
+                  id="input-fabric" 
+                  class="form-input" 
+                  list="fabric-suggestions-list" 
+                  placeholder="e.g. Pure Silk, Banarasi Silk"
+                >
+                <datalist id="fabric-suggestions-list"></datalist>
+              </div>
+
+              <div class="form-group">
+                <label for="input-category" class="form-label">Category</label>
+                <input 
+                  type="text" 
+                  id="input-category" 
+                  class="form-input" 
+                  list="category-suggestions-list" 
+                  placeholder="e.g. Bridal, Festive"
+                >
+                <datalist id="category-suggestions-list"></datalist>
+              </div>
+
+              <div class="form-group">
+                <label for="input-status" class="form-label">Stock Status</label>
+                <select id="input-status" class="form-select">
+                  <option value="Available">Available</option>
+                  <option value="Sold">Sold Out</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Details: Color, Pattern, Border, Occasion -->
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label for="input-color" class="form-label">Primary Color</label>
+                <input type="text" id="input-color" class="form-input" placeholder="e.g. Crimson Red, Emerald Green">
+              </div>
+
+              <div class="form-group">
+                <label for="input-pattern" class="form-label">Pattern / Weave</label>
+                <input type="text" id="input-pattern" class="form-input" placeholder="e.g. Floral Jaal, Kadwa Buti">
+              </div>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label for="input-border" class="form-label">Border Details</label>
+                <input type="text" id="input-border" class="form-input" placeholder="e.g. Temple Border, Meenakari Zari">
+              </div>
+
+              <div class="form-group">
+                <label for="input-occasion" class="form-label">Recommended Occasion</label>
+                <input type="text" id="input-occasion" class="form-input" placeholder="e.g. Wedding, Reception, Festivals">
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div class="form-group">
+              <label for="input-description" class="form-label">Description / Artisan Notes</label>
+              <textarea 
+                id="input-description" 
+                class="form-textarea" 
+                placeholder="Include details about zari purity, weight, blouse piece, and washing instructions..."
+              ></textarea>
+            </div>
+
+            <!-- Upload & Save Progress Indicator -->
+            <div id="upload-progress-wrap" class="upload-progress-wrap">
+              <div class="progress-text">
+                <span id="progress-status-text">Uploading images...</span>
+                <span id="progress-percent-text">0%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div id="progress-bar-fill" class="progress-bar-fill"></div>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+              <button type="submit" id="btn-save-saree" class="btn-primary" style="flex: 1; min-height: 48px; font-size: 1rem;">
+                💾 <span id="btn-save-label">Save Saree to Catalog</span>
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </section>
+
+      <!-- -------------------------------------------------------------------
+           TAB 2: MANAGE & INVENTORY LIST
+           ------------------------------------------------------------------- -->
+      <section id="tab-list-content" style="display: none;">
+        <div class="admin-card">
+          
+          <div class="admin-card-header">
+            <div>
+              <h2 class="admin-card-title">Catalog Inventory</h2>
+              <p style="font-size: 0.82rem; color: #64748b;">
+                Quickly edit sarees, toggle sold status, duplicate items, or delete
+              </p>
+            </div>
+            <button type="button" id="btn-refresh-list" class="btn-secondary" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;">
+              🔄 Refresh List
+            </button>
+          </div>
+
+          <!-- Search & Filter Controls -->
+          <div class="admin-filter-bar">
+            <div class="search-input-wrap" style="flex: 2;">
+              <input 
+                type="text" 
+                id="admin-search-input" 
+                class="form-input" 
+                placeholder="Search by name, fabric, or ID..."
+              >
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; flex: 1;">
+              <select id="admin-status-filter" class="form-select" style="flex: 1;">
+                <option value="all">All Status</option>
+                <option value="Available">Available</option>
+                <option value="Sold">Sold</option>
+              </select>
+
+              <select id="admin-category-filter" class="form-select" style="flex: 1;">
+                <option value="all">All Categories</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Sarees List Container -->
+          <div id="admin-saree-list" class="admin-list-container">
+            <!-- Populated dynamically by admin.js -->
+          </div>
+
+        </div>
+      </section>
+
+      <!-- -------------------------------------------------------------------
+           TAB 3: STORAGE CLEANUP (ORPHAN FILES)
+           ------------------------------------------------------------------- -->
+      <section id="tab-cleanup-content" style="display: none;">
+        <div class="admin-card">
+          
+          <div class="admin-card-header">
+            <div>
+              <h2 class="admin-card-title">Storage Cleanup</h2>
+              <p style="font-size: 0.82rem; color: #64748b;">
+                Find and delete unreferenced images and videos in Supabase Storage to free up space
+              </p>
+            </div>
+            <button type="button" id="btn-scan-orphans" class="btn-primary" style="font-size: 0.82rem; padding: 0.45rem 0.9rem;">
+              🔄 Scan Storage
+            </button>
+          </div>
+
+          <!-- Summary Metric Cards -->
+          <div id="orphan-summary-grid" class="orphan-summary-grid">
+            <div class="orphan-stat-card">
+              <div class="orphan-stat-val" id="stat-total-storage-files">-</div>
+              <div class="orphan-stat-label">Files in Storage</div>
+            </div>
+            <div class="orphan-stat-card">
+              <div class="orphan-stat-val highlight-success" id="stat-active-files">-</div>
+              <div class="orphan-stat-label">Linked to Sarees</div>
+            </div>
+            <div class="orphan-stat-card">
+              <div class="orphan-stat-val highlight-danger" id="stat-orphan-files">-</div>
+              <div class="orphan-stat-label">Orphan Files</div>
+            </div>
+            <div class="orphan-stat-card">
+              <div class="orphan-stat-val" id="stat-orphan-size">-</div>
+              <div class="orphan-stat-label">Reclaimable Space</div>
+            </div>
+          </div>
+
+          <!-- Toolbar (Actions for selected / all orphans) -->
+          <div id="orphan-toolbar" class="orphan-toolbar" style="display: none;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <input type="checkbox" id="orphan-select-all" style="width: 16px; height: 16px; cursor: pointer;">
+              <label for="orphan-select-all" style="font-size: 0.82rem; font-weight: 600; cursor: pointer;">Select All</label>
+              <span id="orphan-selected-count-label" style="font-size: 0.78rem; color: #64748b;">(0 selected)</span>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <button type="button" id="btn-delete-selected-orphans" class="btn-admin-action btn-delete" style="font-size: 0.82rem; padding: 0.4rem 0.85rem;" disabled>
+                🗑️ Delete Selected
+              </button>
+              <button type="button" id="btn-delete-all-orphans" class="btn-primary" style="background-color: #dc2626; font-size: 0.82rem; padding: 0.4rem 0.85rem;">
+                ⚠️ Delete All Orphans
+              </button>
+            </div>
+          </div>
+
+          <!-- Orphan Files Container -->
+          <div id="orphan-files-list">
+            <div style="text-align: center; padding: 3rem 1rem; color: #64748b;">
+              <div style="font-size: 2.2rem; margin-bottom: 0.75rem;">🧹</div>
+              <h3 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 0.35rem;">Check for Unused Storage Files</h3>
+              <p style="font-size: 0.82rem; max-width: 440px; margin: 0 auto 1.25rem; line-height: 1.5;">
+                Click "Scan Storage" to compare files in your storage buckets against sarees in your database.
+              </p>
+              <button type="button" id="btn-scan-orphans-empty" class="btn-primary" style="font-size: 0.85rem; padding: 0.5rem 1.2rem;">
+                🔄 Scan Storage Now
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Toast Notification -->
+  <div id="admin-toast" class="toast-notice" role="status" aria-live="polite">
+    <span id="admin-toast-icon">✓</span>
+    <span id="admin-toast-message">Action successful</span>
+  </div>
+
+  <!-- Scripts -->
+  <script src="config.js"></script>
+  <script src="admin.js" defer></script>
+</body>
+</html>
