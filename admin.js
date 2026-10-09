@@ -171,7 +171,8 @@
 
   function formatPrice(num) {
     const amount = Number(num) || 0;
-    return `${CONFIG.CURRENCY_SYMBOL}${new Intl.NumberFormat('en-IN').format(amount)}`;
+    if (amount <= 0) return `${CONFIG.CURRENCY_SYMBOL}—`;
+    return `${CONFIG.CURRENCY_SYMBOL}${new Intl.NumberFormat('en-US').format(amount)}`;
   }
 
   function formatBytes(bytes) {
