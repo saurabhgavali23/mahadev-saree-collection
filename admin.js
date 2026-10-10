@@ -142,6 +142,29 @@
     dom.progressPercentText = document.getElementById('progress-percent-text');
     dom.progressBarFill = document.getElementById('progress-bar-fill');
 
+    // Supplier Message & Auto-fill
+    dom.inputSupplierText = document.getElementById('input-supplier-text');
+    dom.btnAutofillMessage = document.getElementById('btn-autofill-message');
+    dom.btnClearSupplierText = document.getElementById('btn-clear-supplier-text');
+    dom.chkOverwriteExisting = document.getElementById('chk-overwrite-existing');
+    dom.autofillStatusBanner = document.getElementById('autofill-status-banner');
+
+    // Cost, Margin & Pricing Controls
+    dom.inputCostPrice = document.getElementById('input-cost-price');
+    dom.selectMarginType = document.getElementById('select-margin-type');
+    dom.inputMarginVal = document.getElementById('input-margin-val');
+    dom.marginCalcPreview = document.getElementById('margin-calc-preview');
+    dom.priceAlternativesWrap = document.getElementById('price-alternatives-wrap');
+
+    // Dimensions & Blouse
+    dom.inputLength = document.getElementById('input-length');
+    dom.inputWidth = document.getElementById('input-width');
+    dom.inputBlouse = document.getElementById('input-blouse');
+
+    // Color Chips
+    dom.colorSuggestionsWrap = document.getElementById('color-suggestions-wrap');
+    dom.colorChipsList = document.getElementById('color-chips-list');
+
     // Form Fields
     dom.inputName = document.getElementById('input-name');
     dom.inputPrice = document.getElementById('input-price');
@@ -391,6 +414,10 @@
         .map(c => `<option value="${escapeHtml(c)}">`).join('');
     }
 
+    // Initialize Margin Settings & Pricing Calculator
+    initMarginSettings();
+    updateSellingPriceFromMargin(true);
+
     // Verify Supabase
     if (!CONFIG.SUPABASE_URL || CONFIG.SUPABASE_URL.includes('YOUR_PROJECT_ID') || !window.supabase) {
       showLoginAlert('Supabase credentials missing! Configure SUPABASE_URL and SUPABASE_ANON_KEY in config.js.');
@@ -535,6 +562,10 @@
 
     setProgress(null, null);
     renderPhotoPreviews();
+
+    if (state.currentPhotos.length > 0) {
+      triggerPhotoColorDetection(state.currentPhotos[0]);
+    }
   }
 
   function renderPhotoPreviews() {
@@ -604,6 +635,386 @@
         renderPhotoPreviews();
       });
     });
+  }
+
+  // ----------------------------------------------------------------------------
+  // PHOTO COLOR DETECTION (CANVAS-BASED 50x50 CLUSTERING & HSL MAPPING)
+  // ----------------------------------------------------------------------------
+  async function triggerPhotoColorDetection(photoObj) {
+    if (!photoObj || typeof extractColorsFromImage !== 'function') return;
+    const src = photoObj.type === 'existing' ? photoObj.url : (photoObj.previewUrl || photoObj.blob);
+    if (!src) return;
+
+    try {
+      const result = await extractColorsFromImage(src);
+      if (!result) return;
+
+      const overwrite = dom.chkOverwriteExisting ? dom.chkOverwriteExisting.checked : false;
+      const isColorEmpty = !dom.inputColor || !dom.inputColor.value || dom.inputColor.value.trim() === '';
+
+      // Auto-fill dominant color if empty or overwrite checked
+      if (result.dominant && (isColorEmpty || overwrite) && dom.inputColor) {
+        dom.inputColor.value = result.dominant;
+        markField(dom.inputColor, 'autofill');
+      }
+
+      // Render top suggestions as clickable chips
+      if (dom.colorSuggestionsWrap && dom.colorChipsList) {
+        const chips = Array.isArray(result.suggestions) && result.suggestions.length > 0
+          ? result.suggestions
+          : (result.dominant ? [result.dominant] : []);
+
+        if (chips.length > 0) {
+          dom.colorChipsList.innerHTML = chips.map(cName => {
+            const isSelected = dom.inputColor && dom.inputColor.value.trim().toLowerCase() === cName.toLowerCase();
+            return `<button type="button" class="btn-color-chip ${isSelected ? 'active' : ''}" data-color="${escapeHtml(cName)}">${escapeHtml(cName)}</button>`;
+          }).join('');
+
+          dom.colorSuggestionsWrap.style.display = 'flex';
+
+          dom.colorChipsList.querySelectorAll('.btn-color-chip').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const c = btn.getAttribute('data-color');
+              if (dom.inputColor) {
+                dom.inputColor.value = c;
+                markField(dom.inputColor, 'autofill');
+                dom.colorChipsList.querySelectorAll('.btn-color-chip').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                showToast(`Color selected: ${c}`);
+              }
+            });
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Color detection from photo failed:', err);
+    }
+  }
+
+  // ----------------------------------------------------------------------------
+  // PRICING & MARGIN CALCULATOR (100% PRIVATE BUYING COST)
+  // ----------------------------------------------------------------------------
+  function initMarginSettings() {
+    const defaultMargin = (typeof CONFIG !== 'undefined' && CONFIG.DEFAULT_MARGIN)
+      ? CONFIG.DEFAULT_MARGIN
+      : { TYPE: 'flat', VALUE: 300 };
+
+    const savedType = localStorage.getItem('msc_admin_margin_type') || defaultMargin.TYPE || 'flat';
+    const savedVal = localStorage.getItem('msc_admin_margin_value') || String(defaultMargin.VALUE || 300);
+
+    if (dom.selectMarginType) dom.selectMarginType.value = savedType;
+    if (dom.inputMarginVal) dom.inputMarginVal.value = savedVal;
+  }
+
+  function updateSellingPriceFromMargin(costOnlyUpdate = false) {
+    if (!dom.inputCostPrice || !dom.inputPrice) return;
+    const cost = parseFloat(dom.inputCostPrice.value);
+    const mType = dom.selectMarginType ? dom.selectMarginType.value : 'flat';
+    const mVal = dom.inputMarginVal ? (parseFloat(dom.inputMarginVal.value) || 0) : 0;
+
+    // Persist margin preference in localStorage
+    if (dom.selectMarginType) localStorage.setItem('msc_admin_margin_type', mType);
+    if (dom.inputMarginVal) localStorage.setItem('msc_admin_margin_value', String(mVal));
+
+    if (isNaN(cost) || cost <= 0) {
+      if (dom.marginCalcPreview) {
+        dom.marginCalcPreview.innerHTML = 'Selling = Cost + Margin';
+      }
+      return;
+    }
+
+    let calculated = 0;
+    if (mType === 'percent') {
+      calculated = cost + (cost * (mVal / 100));
+    } else {
+      calculated = cost + mVal;
+    }
+
+    // Round to nearest 10 (e.g. 1270 + 300 = 1570, 1273 -> 1270)
+    const roundedSelling = Math.round(calculated / 10) * 10;
+
+    if (!costOnlyUpdate) {
+      dom.inputPrice.value = roundedSelling;
+    }
+
+    if (dom.marginCalcPreview) {
+      const marginLabel = mType === 'percent' ? `${mVal}%` : `₹${mVal}`;
+      const currSelling = parseFloat(dom.inputPrice.value) || roundedSelling;
+      const actualDiff = Math.round(currSelling - cost);
+      dom.marginCalcPreview.innerHTML = `Selling: <strong>₹${currSelling}</strong> (Cost ₹${cost} + ${marginLabel} → Profit ₹${actualDiff})`;
+    }
+  }
+
+  function handleManualSellingPriceChange() {
+    if (!dom.inputCostPrice || !dom.marginCalcPreview) return;
+    const cost = parseFloat(dom.inputCostPrice.value);
+    const selling = parseFloat(dom.inputPrice.value);
+    if (!isNaN(cost) && cost > 0 && !isNaN(selling) && selling > 0) {
+      const diff = Math.round(selling - cost);
+      const pct = Math.round((diff / cost) * 100);
+      dom.marginCalcPreview.innerHTML = `Selling: <strong>₹${selling}</strong> (Manual: Profit ₹${diff} / ${pct}%)`;
+    }
+  }
+
+  // ----------------------------------------------------------------------------
+  // SUPPLIER MESSAGE AUTO-FILL LOGIC
+  // ----------------------------------------------------------------------------
+  function clearFieldFeedback(container) {
+    if (!container) return;
+    container.querySelectorAll('.field-feedback-wrap').forEach(el => el.remove());
+    container.querySelectorAll('.field-autofilled, .field-uncertain').forEach(el => {
+      el.classList.remove('field-autofilled', 'field-uncertain');
+    });
+  }
+
+  function markField(inputElem, status, message) {
+    if (!inputElem) return;
+    const parent = inputElem.parentElement;
+    if (!parent) return;
+
+    const old = parent.querySelector('.field-feedback-wrap');
+    if (old) old.remove();
+
+    inputElem.classList.remove('field-autofilled', 'field-uncertain');
+
+    const wrap = document.createElement('div');
+    wrap.className = 'field-feedback-wrap';
+
+    if (status === 'autofill') {
+      inputElem.classList.add('field-autofilled');
+      wrap.innerHTML = `<span style="font-size: 0.72rem; color: #16a34a; font-weight: 600;">✓ Auto-filled</span>`;
+    } else if (status === 'uncertain') {
+      inputElem.classList.add('field-uncertain');
+      wrap.innerHTML = `<span class="field-uncertain-badge">⚠️ Check this: ${escapeHtml(message || 'Uncertain')}</span>`;
+    } else if (status === 'not-found') {
+      wrap.innerHTML = `<span class="field-not-found-hint">— Not detected in message</span>`;
+    }
+    parent.appendChild(wrap);
+  }
+
+  function handleAutoFillFromMessage() {
+    if (!dom.inputSupplierText) return;
+    const rawText = dom.inputSupplierText.value.trim();
+    if (!rawText) {
+      showToast('Please paste a WhatsApp message first.');
+      dom.inputSupplierText.focus();
+      return;
+    }
+
+    if (typeof parseSareeText !== 'function') {
+      showToast('Parser module not available.');
+      return;
+    }
+
+    const overwrite = dom.chkOverwriteExisting ? dom.chkOverwriteExisting.checked : false;
+    const parsed = parseSareeText(rawText);
+
+    // Clear old feedback
+    clearFieldFeedback(dom.sareeForm);
+    if (dom.priceAlternativesWrap) {
+      dom.priceAlternativesWrap.innerHTML = '';
+      dom.priceAlternativesWrap.style.display = 'none';
+    }
+
+    const filledFields = [];
+    const uncertainFields = [];
+    const notFoundFields = [];
+
+    function applyField(inputElem, fieldKey, val, isUncertain = false, uncertainReason = '') {
+      if (!inputElem) return;
+      const hasExisting = Boolean(inputElem.value && inputElem.value.trim() !== '' && inputElem.value !== '0');
+
+      if (val !== null && val !== undefined && val !== '') {
+        if (!hasExisting || overwrite) {
+          inputElem.value = val;
+          if (isUncertain) {
+            markField(inputElem, 'uncertain', uncertainReason);
+            uncertainFields.push(fieldKey);
+          } else {
+            markField(inputElem, 'autofill');
+            filledFields.push(fieldKey);
+          }
+        }
+      } else {
+        if (!hasExisting) {
+          markField(inputElem, 'not-found');
+          notFoundFields.push(fieldKey);
+        }
+      }
+    }
+
+    // 1. Cost Price & Alternatives
+    const hasAltPrices = Array.isArray(parsed.alternative_prices) && parsed.alternative_prices.length > 0;
+
+    if (parsed.cost_price !== null) {
+      applyField(
+        dom.inputCostPrice,
+        'Cost Price',
+        parsed.cost_price,
+        hasAltPrices,
+        hasAltPrices ? `Multiple numbers found (${[parsed.cost_price, ...parsed.alternative_prices].map(p => '₹' + p).join(', ')})` : ''
+      );
+      updateSellingPriceFromMargin();
+    } else {
+      applyField(dom.inputCostPrice, 'Cost Price', null);
+    }
+
+    // Render price alternatives if any
+    if (hasAltPrices && dom.priceAlternativesWrap) {
+      dom.priceAlternativesWrap.innerHTML = `
+        <span>Other price candidates: </span>
+        ${parsed.alternative_prices.map(alt => `<button type="button" class="btn-alt-price" data-alt-price="${alt}">Use ₹${alt}</button>`).join(' ')}
+      `;
+      dom.priceAlternativesWrap.style.display = 'block';
+
+      dom.priceAlternativesWrap.querySelectorAll('.btn-alt-price').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const chosen = btn.getAttribute('data-alt-price');
+          if (dom.inputCostPrice) {
+            dom.inputCostPrice.value = chosen;
+            markField(dom.inputCostPrice, 'autofill');
+            updateSellingPriceFromMargin();
+            showToast(`Applied cost price: ₹${chosen}`);
+          }
+        });
+      });
+    }
+
+    // 2. Name / Title
+    applyField(dom.inputName, 'Title', parsed.name);
+
+    // 3. Fabric
+    applyField(dom.inputFabric, 'Fabric', parsed.fabric);
+
+    // 4. Pattern / Work
+    applyField(dom.inputPattern, 'Pattern', parsed.pattern);
+
+    // 5. Category
+    applyField(dom.inputCategory, 'Category', parsed.category);
+
+    // 6. Occasion
+    applyField(dom.inputOccasion, 'Occasion', parsed.occasion);
+
+    // 7. Color (if detected in text)
+    if (parsed.color) {
+      applyField(dom.inputColor, 'Color', parsed.color);
+    }
+
+    // 8. Dimensions & Blouse
+    applyField(dom.inputLength, 'Length', parsed.length_m);
+    applyField(dom.inputWidth, 'Width', parsed.width_in);
+    applyField(dom.inputBlouse, 'Blouse', parsed.blouse);
+
+    // Status Banner
+    if (dom.autofillStatusBanner) {
+      const summaryParts = [];
+      if (filledFields.length > 0) {
+        summaryParts.push(`<strong>✓ Auto-filled ${filledFields.length} field(s):</strong> ${filledFields.join(', ')}`);
+      }
+      if (uncertainFields.length > 0) {
+        summaryParts.push(`<strong style="color: #b45309;">⚠️ Please check:</strong> ${uncertainFields.join(', ')}`);
+      }
+      if (notFoundFields.length > 0) {
+        summaryParts.push(`<span style="color: #64748b;">(Not in message: ${notFoundFields.join(', ')})</span>`);
+      }
+
+      dom.autofillStatusBanner.innerHTML = summaryParts.join('<br>') || 'Parsed message. Review fields below.';
+      dom.autofillStatusBanner.style.display = 'block';
+    }
+
+    showToast(`Auto-fill complete (${filledFields.length} fields filled)`);
+  }
+
+  // ----------------------------------------------------------------------------
+  // SECURE PRIVATE DATA MANAGEMENT (saree_private table + localStorage fallback)
+  // ----------------------------------------------------------------------------
+  async function savePrivateSareeData(sareeId, costPrice, originalMessage) {
+    if (!sareeId) return;
+
+    // 1. Always cache in localStorage as seamless offline backup
+    try {
+      const store = JSON.parse(localStorage.getItem('msc_saree_private_store') || '{}');
+      store[sareeId] = {
+        cost_price: costPrice,
+        original_message: originalMessage,
+        updated_at: new Date().toISOString()
+      };
+      localStorage.setItem('msc_saree_private_store', JSON.stringify(store));
+    } catch (e) {
+      console.warn('localStorage private store write error:', e);
+    }
+
+    // 2. Persist to Supabase saree_private table (RLS protected for authenticated admins)
+    if (state.supabaseClient) {
+      try {
+        const { error } = await state.supabaseClient
+          .from('saree_private')
+          .upsert({
+            saree_id: sareeId,
+            cost_price: costPrice,
+            original_message: originalMessage,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'saree_id' });
+
+        if (error) {
+          console.warn('Supabase saree_private upsert error (run SQL migration if table not yet created):', error.message);
+        }
+      } catch (err) {
+        console.warn('Error saving to saree_private table:', err);
+      }
+    }
+  }
+
+  async function loadPrivateSareeData(sareeId) {
+    if (!sareeId) return;
+    let foundCost = null;
+    let foundMsg = '';
+
+    // 1. Fetch from Supabase saree_private table
+    if (state.supabaseClient) {
+      try {
+        const { data, error } = await state.supabaseClient
+          .from('saree_private')
+          .select('cost_price, original_message')
+          .eq('saree_id', sareeId)
+          .maybeSingle();
+
+        if (!error && data) {
+          if (data.cost_price !== null && data.cost_price !== undefined) {
+            foundCost = data.cost_price;
+          }
+          if (data.original_message) {
+            foundMsg = data.original_message;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not query saree_private:', err);
+      }
+    }
+
+    // 2. Fallback to localStorage if not found in database yet
+    if (foundCost === null || !foundMsg) {
+      try {
+        const store = JSON.parse(localStorage.getItem('msc_saree_private_store') || '{}');
+        if (store[sareeId]) {
+          if (foundCost === null && store[sareeId].cost_price !== undefined) {
+            foundCost = store[sareeId].cost_price;
+          }
+          if (!foundMsg && store[sareeId].original_message) {
+            foundMsg = store[sareeId].original_message;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Populate form inputs
+    if (dom.inputCostPrice && foundCost !== null && foundCost !== undefined) {
+      dom.inputCostPrice.value = foundCost;
+      updateSellingPriceFromMargin(true); // Updates margin label without overwriting current selling price
+    }
+    if (dom.inputSupplierText && foundMsg) {
+      dom.inputSupplierText.value = foundMsg;
+    }
   }
 
   // ----------------------------------------------------------------------------
@@ -885,6 +1296,10 @@
 
       setProgress('Saving saree record to Supabase...', 95);
 
+      const lengthVal = dom.inputLength && dom.inputLength.value !== '' ? parseFloat(dom.inputLength.value) : null;
+      const widthVal = dom.inputWidth && dom.inputWidth.value !== '' ? parseFloat(dom.inputWidth.value) : null;
+      const blouseVal = dom.inputBlouse ? dom.inputBlouse.value.trim() : null;
+
       const payload = {
         name: name,
         fabric: dom.inputFabric.value.trim() || 'Traditional Weave',
@@ -899,8 +1314,13 @@
         status: dom.inputStatus.value,
         images: uploadedPhotos,
         video_url: videoUrl,
-        video_poster: posterUrl
+        video_poster: posterUrl,
+        length_m: isNaN(lengthVal) ? null : lengthVal,
+        width_in: isNaN(widthVal) ? null : widthVal,
+        blouse: blouseVal || null
       };
+
+      let savedSareeId = state.editingSareeId;
 
       if (state.editingSareeId) {
         let { error } = await state.supabaseClient
@@ -908,11 +1328,14 @@
           .update(payload)
           .eq('id', state.editingSareeId);
 
-        // Safe retry if shipping_charges column has not been added to Supabase table yet
-        if (error && error.message && error.message.includes('shipping_charges')) {
-          console.warn('shipping_charges column missing from database, saving without it:', error);
+        // Safe retry if dimension or shipping_charges columns have not been added to Supabase table yet
+        if (error && error.message && (error.message.includes('shipping_charges') || error.message.includes('length_m') || error.message.includes('width_in') || error.message.includes('blouse'))) {
+          console.warn('Columns missing from database, saving without optional columns:', error.message);
           const safePayload = { ...payload };
           delete safePayload.shipping_charges;
+          delete safePayload.length_m;
+          delete safePayload.width_in;
+          delete safePayload.blouse;
           const retryRes = await state.supabaseClient
             .from('sarees')
             .update(safePayload)
@@ -923,23 +1346,39 @@
         if (error) throw error;
         showToast(`Saree #${state.editingSareeId} updated successfully!`);
       } else {
-        let { error } = await state.supabaseClient
+        let { data: insertedData, error } = await state.supabaseClient
           .from('sarees')
-          .insert([payload]);
+          .insert([payload])
+          .select('id');
 
-        // Safe retry if shipping_charges column has not been added to Supabase table yet
-        if (error && error.message && error.message.includes('shipping_charges')) {
-          console.warn('shipping_charges column missing from database, saving without it:', error);
+        // Safe retry if columns missing
+        if (error && error.message && (error.message.includes('shipping_charges') || error.message.includes('length_m') || error.message.includes('width_in') || error.message.includes('blouse'))) {
+          console.warn('Columns missing from database, inserting without optional columns:', error.message);
           const safePayload = { ...payload };
           delete safePayload.shipping_charges;
+          delete safePayload.length_m;
+          delete safePayload.width_in;
+          delete safePayload.blouse;
           const retryRes = await state.supabaseClient
             .from('sarees')
-            .insert([safePayload]);
+            .insert([safePayload])
+            .select('id');
           error = retryRes.error;
+          insertedData = retryRes.data;
         }
 
         if (error) throw error;
+        if (insertedData && insertedData[0]) {
+          savedSareeId = insertedData[0].id;
+        }
         showToast('New saree added to catalog successfully!');
+      }
+
+      // Persist private data (cost price and original supplier message)
+      const costVal = dom.inputCostPrice && dom.inputCostPrice.value !== '' ? parseFloat(dom.inputCostPrice.value) : null;
+      const origMsg = dom.inputSupplierText ? dom.inputSupplierText.value : '';
+      if (savedSareeId) {
+        await savePrivateSareeData(savedSareeId, isNaN(costVal) ? null : costVal, origMsg);
       }
 
       // Bust public catalog cache
@@ -967,6 +1406,27 @@
     dom.sareeForm.reset();
     dom.sareeEditId.value = '';
     if (dom.inputShipping) dom.inputShipping.value = '0';
+    if (dom.inputCostPrice) dom.inputCostPrice.value = '';
+    if (dom.inputSupplierText) dom.inputSupplierText.value = '';
+    if (dom.inputLength) dom.inputLength.value = '';
+    if (dom.inputWidth) dom.inputWidth.value = '';
+    if (dom.inputBlouse) dom.inputBlouse.value = '';
+
+    if (dom.autofillStatusBanner) {
+      dom.autofillStatusBanner.innerHTML = '';
+      dom.autofillStatusBanner.style.display = 'none';
+    }
+    if (dom.priceAlternativesWrap) {
+      dom.priceAlternativesWrap.innerHTML = '';
+      dom.priceAlternativesWrap.style.display = 'none';
+    }
+    if (dom.colorSuggestionsWrap) dom.colorSuggestionsWrap.style.display = 'none';
+    if (dom.colorChipsList) dom.colorChipsList.innerHTML = '';
+
+    clearFieldFeedback(dom.sareeForm);
+    initMarginSettings();
+    updateSellingPriceFromMargin(true);
+
     dom.formSectionTitle.textContent = 'Add New Saree';
     dom.formSectionDesc.textContent = 'Add saree specifications, photos, and drape video';
     dom.formTabLabel.textContent = 'Add New Saree';
@@ -993,6 +1453,16 @@
     dom.inputOccasion.value = saree.occasion || '';
     dom.inputDescription.value = saree.description || '';
 
+    // Dimensions & Blouse
+    if (dom.inputLength) dom.inputLength.value = (saree.length_m !== null && saree.length_m !== undefined) ? saree.length_m : '';
+    if (dom.inputWidth) dom.inputWidth.value = (saree.width_in !== null && saree.width_in !== undefined) ? saree.width_in : '';
+    if (dom.inputBlouse) dom.inputBlouse.value = saree.blouse || '';
+
+    // Clear previous auto-fill markers & alternatives
+    clearFieldFeedback(dom.sareeForm);
+    if (dom.autofillStatusBanner) dom.autofillStatusBanner.style.display = 'none';
+    if (dom.priceAlternativesWrap) dom.priceAlternativesWrap.style.display = 'none';
+
     // Photos
     const imgs = Array.isArray(saree.images) ? saree.images : [];
     state.currentPhotos = imgs.map(url => ({
@@ -1012,6 +1482,14 @@
       };
     } else {
       state.videoData = null;
+    }
+
+    // Load confidential private buying cost & original supplier message
+    loadPrivateSareeData(saree.id);
+
+    // If photos exist, run color detection for chips
+    if (state.currentPhotos.length > 0) {
+      triggerPhotoColorDetection(state.currentPhotos[0]);
     }
 
     dom.formSectionTitle.textContent = `Edit Saree #${saree.id}`;
@@ -1041,6 +1519,14 @@
     dom.inputOccasion.value = saree.occasion || '';
     dom.inputDescription.value = saree.description || '';
 
+    // Dimensions & Blouse
+    if (dom.inputLength) dom.inputLength.value = (saree.length_m !== null && saree.length_m !== undefined) ? saree.length_m : '';
+    if (dom.inputWidth) dom.inputWidth.value = (saree.width_in !== null && saree.width_in !== undefined) ? saree.width_in : '';
+    if (dom.inputBlouse) dom.inputBlouse.value = saree.blouse || '';
+
+    // Load private buying cost
+    loadPrivateSareeData(saree.id);
+
     const imgs = Array.isArray(saree.images) ? saree.images : [];
     state.currentPhotos = imgs.map(url => ({
       type: 'existing',
@@ -1056,6 +1542,10 @@
         posterUrl: saree.video_poster,
         isYouTube: isYt
       };
+    }
+
+    if (state.currentPhotos.length > 0) {
+      triggerPhotoColorDetection(state.currentPhotos[0]);
     }
 
     renderPhotoPreviews();
@@ -2306,6 +2796,40 @@
         clearVideoData();
         showToast('Video removed from this saree.');
       });
+    }
+
+    // Auto-fill from WhatsApp Supplier Message
+    if (dom.btnAutofillMessage) {
+      dom.btnAutofillMessage.addEventListener('click', handleAutoFillFromMessage);
+    }
+    if (dom.btnClearSupplierText) {
+      dom.btnClearSupplierText.addEventListener('click', () => {
+        if (dom.inputSupplierText) dom.inputSupplierText.value = '';
+        if (dom.autofillStatusBanner) {
+          dom.autofillStatusBanner.innerHTML = '';
+          dom.autofillStatusBanner.style.display = 'none';
+        }
+        if (dom.priceAlternativesWrap) {
+          dom.priceAlternativesWrap.innerHTML = '';
+          dom.priceAlternativesWrap.style.display = 'none';
+        }
+        clearFieldFeedback(dom.sareeForm);
+        showToast('Pasted supplier message cleared.');
+      });
+    }
+
+    // Cost Price & Margin calculation listeners
+    if (dom.inputCostPrice) {
+      dom.inputCostPrice.addEventListener('input', () => updateSellingPriceFromMargin(false));
+    }
+    if (dom.selectMarginType) {
+      dom.selectMarginType.addEventListener('change', () => updateSellingPriceFromMargin(false));
+    }
+    if (dom.inputMarginVal) {
+      dom.inputMarginVal.addEventListener('input', () => updateSellingPriceFromMargin(false));
+    }
+    if (dom.inputPrice) {
+      dom.inputPrice.addEventListener('input', handleManualSellingPriceChange);
     }
 
     // Saree Form Submit & Cancel

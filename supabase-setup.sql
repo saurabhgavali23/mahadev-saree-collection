@@ -211,3 +211,53 @@ create policy "Authenticated admins can update reviews"
 create policy "Authenticated admins can delete reviews"
   on public.saree_reviews for delete to authenticated using (true);
 
+
+-- ==============================================================================
+-- 5. SAREE DIMENSIONS & SECURE PRIVATE TABLE (COST PRICE & ORIGINAL MESSAGE)
+-- ==============================================================================
+-- Optional dimensions on public sarees table (visible to customers on detail page):
+alter table public.sarees add column if not exists length_m numeric;
+alter table public.sarees add column if not exists width_in numeric;
+alter table public.sarees add column if not exists blouse text;
+
+-- ------------------------------------------------------------------------------
+-- Private table: saree_private
+-- Stores confidential supplier buying cost and raw pasted WhatsApp message.
+-- Strictly restricted: NO public read access. Only authenticated admins have access.
+-- Cascading delete: when a saree is deleted, its private row is automatically removed.
+-- ------------------------------------------------------------------------------
+create table if not exists public.saree_private (
+  saree_id bigint primary key references public.sarees(id) on delete cascade,
+  cost_price numeric check (cost_price >= 0),
+  original_message text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Performance Index
+create index if not exists idx_saree_private_saree_id on public.saree_private (saree_id);
+
+-- Row Level Security (RLS)
+alter table public.saree_private enable row level security;
+
+-- Drop existing policies if re-running
+drop policy if exists "Authenticated admins can select saree_private" on public.saree_private;
+drop policy if exists "Authenticated admins can insert saree_private" on public.saree_private;
+drop policy if exists "Authenticated admins can update saree_private" on public.saree_private;
+drop policy if exists "Authenticated admins can delete saree_private" on public.saree_private;
+drop policy if exists "Public cannot view saree_private" on public.saree_private;
+
+-- RLS: Authenticated admin only policies (Public has NO SELECT policy, completely hidden)
+create policy "Authenticated admins can select saree_private"
+  on public.saree_private for select to authenticated using (true);
+
+create policy "Authenticated admins can insert saree_private"
+  on public.saree_private for insert to authenticated with check (true);
+
+create policy "Authenticated admins can update saree_private"
+  on public.saree_private for update to authenticated using (true) with check (true);
+
+create policy "Authenticated admins can delete saree_private"
+  on public.saree_private for delete to authenticated using (true);
+
+

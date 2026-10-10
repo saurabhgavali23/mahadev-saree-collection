@@ -31,7 +31,7 @@ const CONFIG = {
   // 2. SHOP BRANDING & CONTACT
   // ----------------------------------------------------------------------------
   SHOP_NAME: "Mahadev Saree Collection",
-  SHOP_TAGLINE: "Pure Elegance in Every Weave • Premium Silk, Banarasi & Handloom Sarees",
+  SHOP_TAGLINE: "Pure Elegance in Every Weave • 100% Online Saree Boutique",
 
   // WhatsApp number in international format without '+' or spaces.
   // Format for India: 91 followed by 10-digit phone number -> "919876543210"
@@ -45,6 +45,12 @@ const CONFIG = {
     DEFAULT_CHARGE: 0, // 0 = Free Delivery by default, or set a flat amount e.g. 100
     FREE_LABEL: "Free Delivery",
     POLICY_TEXT: "Pan-India Insured Shipping"
+  },
+
+  // Default Margin for Admin Auto-Fill (Cost Price -> Selling Price)
+  DEFAULT_MARGIN: {
+    TYPE: "flat", // "flat" (₹) or "percent" (%)
+    VALUE: 300    // e.g. 300 flat or 25%
   },
 
   // How long to cache catalog data in sessionStorage (in minutes)
@@ -82,14 +88,14 @@ const CONFIG = {
   // ----------------------------------------------------------------------------
   ABOUT: {
     TITLE: "About Mahadev Saree Collection",
-    SUBTITLE: "Crafted with passion, delivered with love",
-    DESCRIPTION_P1: "Welcome to Mahadev Saree Collection, your premier boutique for authentic Indian handlooms, regal bridal silks, and contemporary festive wear. Each saree in our catalog is handpicked directly from traditional master weavers across Varanasi, Kanchipuram, Chanderi, and Bengal.",
-    DESCRIPTION_P2: "We believe every saree tells a timeless story of heritage, grace, and artistry. By bypassing middlemen, we bring you genuine weaves and pure zari craftsmanship at direct weaver prices.",
+    SUBTITLE: "100% Online Saree Boutique • Direct from Master Weavers to Your Doorstep",
+    DESCRIPTION_P1: "Welcome to Mahadev Saree Collection, your trusted online destination for authentic Indian handlooms, regal bridal silks, and contemporary festive wear. We sell exclusively online with no physical retail shops or middleman overheads.",
+    DESCRIPTION_P2: "By operating purely online, we keep our prices direct and transparent, passing maximum savings to you without showroom markups. We also offer personal WhatsApp video consultations so you can experience the exact color, zari luster, and drape before placing your order.",
     HIGHLIGHTS: [
-      { icon: "✨", title: "100% Authentic Handloom", desc: "Certified pure silk & genuine zari work" },
-      { icon: "🧵", title: "Direct Weaver Pricing", desc: "Honest pricing with no middleman markups" },
-      { icon: "📦", title: "Pan-India Safe Delivery", desc: "Insured shipping with live tracking updates" },
-      { icon: "💬", title: "Personal Video Shopping", desc: "Inspect any saree live over WhatsApp call" }
+      { icon: "🌐", title: "100% Online Boutique", desc: "No physical store overheads — authentic direct-weaver pricing" },
+      { icon: "✨", title: "100% Authentic Handloom", desc: "Certified pure silk & genuine zari craftsmanship" },
+      { icon: "📦", title: "Pan-India Safe Delivery", desc: "Insured doorstep delivery with real-time tracking" },
+      { icon: "📹", title: "Live Video Verification", desc: "Inspect real drape, color & texture on WhatsApp video call" }
     ]
   },
 
@@ -97,41 +103,42 @@ const CONFIG = {
   // 5. HOW ORDERING WORKS (3 SIMPLE STEPS)
   // ----------------------------------------------------------------------------
   HOW_TO_ORDER: {
-    TITLE: "How to Order in 3 Simple Steps",
-    SUBTITLE: "No complicated checkout — personalized, friendly shopping on WhatsApp",
+    TITLE: "How to Order Online in 3 Simple Steps",
+    SUBTITLE: "Shop from anywhere in India — 100% online with personal WhatsApp assistance",
     STEPS: [
       {
         step: "1",
         title: "Browse & Select",
-        desc: "Explore our catalog and find your dream saree. Watch the drape video and click 'Order on WhatsApp' on the saree details page.",
+        desc: "Explore our online catalog and find your dream saree. Watch the drape video and click 'Order on WhatsApp' on the saree details page.",
         icon: "📱"
       },
       {
         step: "2",
         title: "WhatsApp Us",
-        desc: "A pre-filled message with the saree ID, name, price, and link opens automatically. Ask questions or request live video verification.",
+        desc: "A pre-filled message with the saree ID, name, price, and link opens automatically. Ask questions, request more photos, or ask for a live video verification.",
         icon: "💬"
       },
       {
         step: "3",
         title: "Pay by QR & Relax",
-        desc: "Confirm your order, pay securely via UPI QR code or bank transfer, and we dispatch your saree within 24 hours.",
+        desc: "Confirm your order, pay securely via UPI QR code, and we dispatch your saree.",
         icon: "🛍️"
       }
     ]
   },
 
   // ----------------------------------------------------------------------------
-  // 6. RETURN & EXCHANGE POLICY
+  // 6. RETURN POLICY
   // ----------------------------------------------------------------------------
   RETURN_POLICY: {
-    TITLE: "Return & Exchange Policy",
-    SUBTITLE: "Honest, transparent, and customer-first service",
+    TITLE: "Return Policy",
+    SUBTITLE: "No Exchange • Return accepted strictly for damaged items with mandatory unboxing video",
     POINTS: [
-      "7-Day Exchange Window: If you receive a damaged or incorrect saree, notify us within 7 days with a clear unboxing video.",
-      "Condition: Saree must be unworn, unwashed, with all original tags, folding intact, and unstitched blouse piece attached.",
-      "Color Variation: Authentic handlooms shot under natural studio lights may show a minor 5-10% hue variation depending on screen calibration.",
-      "Dispatch Cancellation: Orders can be cancelled anytime before courier dispatch with an immediate 100% refund."
+      "No Exchange Policy: We do not offer any exchanges or replacements. Please review all saree details, photos, and drape videos carefully before confirming your order.",
+      "Return Only if Damage Found: Returns are accepted strictly in the rare case that a physical defect or damage is found upon arrival.",
+      "Full Unpacking Video Mandatory: A single continuous, uncut, full unboxing/unpacking video (showing the sealed outer package, label, opening, and full inspection of the saree) is strictly required as proof. Claims without a complete unboxing video cannot be accepted.",
+      "Customer Self-Ship Return: If damage is verified, the customer must courier / resend the saree by themselves to our provided return address.",
+      "Condition: The saree must be unworn, unwashed, in its original folding, with all tags intact and the unstitched blouse piece attached."
     ]
   },
 
@@ -139,10 +146,10 @@ const CONFIG = {
   // 7. FOOTER & CONTACT DETAILS
   // ----------------------------------------------------------------------------
   FOOTER: {
-    ADDRESS: "Shop No. 12, Heritage Silk Market, Ring Road, Surat, Gujarat 395002",
+    ADDRESS: "100% Online Store • Pan-India Courier Delivery",
     PHONE: "+91 98765 43210",
     EMAIL: "orders@mahadevsaree.com",
-    HOURS: "Monday to Saturday: 10:00 AM – 8:30 PM (IST)",
+    HOURS: "Online Support: Monday to Saturday: 10:00 AM – 8:30 PM (IST)",
     COPYRIGHT: "© 2026 Mahadev Saree Collection. All rights reserved."
   },
 

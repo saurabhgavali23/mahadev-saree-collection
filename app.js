@@ -210,7 +210,7 @@
     if (footerTagline) footerTagline.textContent = CONFIG.SHOP_TAGLINE;
 
     // Contact WhatsApp links
-    const genericMsg = `Hello ${CONFIG.SHOP_NAME}, I would like to inquire about your saree collection.`;
+    const genericMsg = `Hello ${CONFIG.SHOP_NAME}, I would like to inquire about your online saree collection.`;
     const defaultWaUrl = buildWhatsAppUrl(genericMsg);
     if (dom.headerWaLink) dom.headerWaLink.href = defaultWaUrl;
     if (dom.floatingWaBtn) dom.floatingWaBtn.href = defaultWaUrl;
@@ -441,6 +441,9 @@
         video_url: cleanVideoUrl,
         video_poster: row.video_poster || null,
         reviews: Array.isArray(row.reviews) ? row.reviews : [],
+        length_m: (row.length_m !== null && row.length_m !== undefined && !isNaN(row.length_m)) ? parseFloat(row.length_m) : null,
+        width_in: (row.width_in !== null && row.width_in !== undefined && !isNaN(row.width_in)) ? parseFloat(row.width_in) : null,
+        blouse: row.blouse ? String(row.blouse).trim() : null,
         status: isSold ? 'Sold' : 'Available',
         isSold: isSold,
         created_at: row.created_at || new Date().toISOString(),
@@ -852,11 +855,30 @@
               <span class="spec-key">Category</span>
               <span class="spec-val">${escapeHtml(saree.category)}</span>
             </div>
+            ${saree.length_m ? `
+            <div class="spec-item">
+              <span class="spec-key">Length</span>
+              <span class="spec-val">${escapeHtml(saree.length_m)} meters</span>
+            </div>` : ''}
+            ${saree.width_in ? `
+            <div class="spec-item">
+              <span class="spec-key">Width</span>
+              <span class="spec-val">${escapeHtml(saree.width_in)} inches</span>
+            </div>` : ''}
+            ${saree.blouse ? `
+            <div class="spec-item">
+              <span class="spec-key">Blouse Piece</span>
+              <span class="spec-val">${escapeHtml(saree.blouse)}</span>
+            </div>` : ''}
             <div class="spec-item">
               <span class="spec-key">Shipping</span>
               <span class="spec-val ${shipping.isFree ? 'highlight-free-shipping' : ''}">
                 ${escapeHtml(shipping.detailText)}
               </span>
+            </div>
+            <div class="spec-item">
+              <span class="spec-key">Returns</span>
+              <span class="spec-val">Damaged only (Unboxing video required)</span>
             </div>
           </div>
 
@@ -864,6 +886,17 @@
           <div class="detail-desc-box">
             <span class="detail-desc-label">Saree Description</span>
             <p class="detail-desc-text">${escapeHtml(saree.description || 'Authentic handcrafted pure saree made by master weavers.')}</p>
+          </div>
+
+          <!-- Return Policy Note -->
+          <div class="detail-policy-notice">
+            <span class="detail-policy-notice-title">🛡️ Return &amp; Damage Policy</span>
+            <p class="detail-policy-notice-text">
+              • <strong>No Exchange:</strong> We do not offer exchanges or replacements.<br>
+              • <strong>Return Only if Damaged:</strong> Accepted strictly if physical damage is found on arrival.<br>
+              • <strong>Mandatory Unpacking Video:</strong> Full continuous unboxing video of sealed parcel required as proof.<br>
+              • <strong>Self-Ship:</strong> In case of damage, customer needs to self-ship / courier the saree back to our return address.
+            </p>
           </div>
 
           <!-- Action Buttons -->
@@ -1301,7 +1334,7 @@
     document.title = `${CONFIG.SHOP_NAME} | ${CONFIG.SHOP_TAGLINE}`;
     const metaDesc = document.getElementById('meta-description');
     if (metaDesc) {
-      metaDesc.setAttribute('content', `Discover authentic Kanjivaram, Banarasi, Chanderi, and silk sarees at ${CONFIG.SHOP_NAME}. Order directly on WhatsApp.`);
+      metaDesc.setAttribute('content', `Discover authentic Kanjivaram, Banarasi, Chanderi, and silk sarees at ${CONFIG.SHOP_NAME}. 100% online boutique with Pan-India delivery. Order directly on WhatsApp.`);
     }
   }
 
