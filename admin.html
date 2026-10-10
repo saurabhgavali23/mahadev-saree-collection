@@ -460,11 +460,41 @@
               </div>
             </div>
 
-            <!-- Details: Color (with photo chips) & Pattern -->
+            <!-- Details: Color (Multi-color manager) & Pattern -->
             <div class="form-grid-2">
               <div class="form-group">
-                <label for="input-color" class="form-label">Primary Color</label>
-                <input type="text" id="input-color" class="form-input" placeholder="e.g. Crimson Red, Emerald Green">
+                <label class="form-label" for="input-color">
+                  Available Colors <span style="color: #ef4444;">*</span>
+                  <small style="color: #64748b; font-weight: normal;">(Customer will see &amp; choose from these colors)</small>
+                </label>
+
+                <!-- Custom input + Add button -->
+                <div style="display: flex; gap: 0.4rem;">
+                  <input 
+                    type="text" 
+                    id="input-color" 
+                    class="form-input" 
+                    placeholder="Type color e.g. Crimson Red, Bottle Green..."
+                  >
+                  <button type="button" id="btn-add-color" class="btn-secondary" style="font-size: 0.82rem; padding: 0.45rem 0.85rem; white-space: nowrap;">
+                    ＋ Add Color
+                  </button>
+                </div>
+
+                <!-- Active Color Tags Badge Container -->
+                <div id="admin-color-tags-wrap" class="admin-color-tags-wrap" style="margin-top: 0.4rem;">
+                  <div id="admin-color-tags-list" class="admin-color-tags-list"></div>
+                  <small id="admin-color-tags-hint" style="font-size: 0.72rem; color: #64748b; display: none; margin-top: 0.25rem;">
+                    💡 First color is the primary/default color.
+                  </small>
+                </div>
+
+                <!-- Quick Preset Color Taps -->
+                <div class="color-presets-wrap" style="margin-top: 0.4rem;">
+                  <span class="color-presets-label" style="font-size: 0.72rem; color: #64748b; font-weight: 600;">⚡ Quick Add:</span>
+                  <div class="color-presets-list" id="color-presets-list"></div>
+                </div>
+
                 <!-- Color Chips from Photo Detection -->
                 <div id="color-suggestions-wrap" class="color-chips-row" style="display: none;">
                   <span class="color-chips-label">🎨 From Photo:</span>

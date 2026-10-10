@@ -38,7 +38,8 @@
     allReviews: [],
     selectedReviewSareeId: null,
     currentReviewPhotos: [],
-    editingReviewId: null
+    editingReviewId: null,
+    formColors: []             // Array of available colors added to currently edited saree
   };
 
   const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='800' viewBox='0 0 600 800'%3E%3Crect fill='%23f4ede4' width='600' height='800'/%3E%3Ctext fill='%239c9389' font-family='sans-serif' font-size='24' font-weight='600' x='50%25' y='50%25' text-anchor='middle'%3ENo Photo%3C/text%3E%3C/svg%3E";
@@ -161,9 +162,14 @@
     dom.inputWidth = document.getElementById('input-width');
     dom.inputBlouse = document.getElementById('input-blouse');
 
-    // Color Chips
+    // Color Chips & Multi-Color Manager
     dom.colorSuggestionsWrap = document.getElementById('color-suggestions-wrap');
     dom.colorChipsList = document.getElementById('color-chips-list');
+    dom.btnAddColor = document.getElementById('btn-add-color');
+    dom.adminColorTagsWrap = document.getElementById('admin-color-tags-wrap');
+    dom.adminColorTagsList = document.getElementById('admin-color-tags-list');
+    dom.adminColorTagsHint = document.getElementById('admin-color-tags-hint');
+    dom.colorPresetsList = document.getElementById('color-presets-list');
 
     // Form Fields
     dom.inputName = document.getElementById('input-name');
@@ -418,6 +424,9 @@
     initMarginSettings();
     updateSellingPriceFromMargin(true);
 
+    // Initialize Multi-Color Tags & Presets
+    renderAdminColorTags();
+
     // Verify Supabase
     if (!CONFIG.SUPABASE_URL || CONFIG.SUPABASE_URL.includes('YOUR_PROJECT_ID') || !window.supabase) {
       showLoginAlert('Supabase credentials missing! Configure SUPABASE_URL and SUPABASE_ANON_KEY in config.js.');
@@ -638,6 +647,124 @@
   }
 
   // ----------------------------------------------------------------------------
+  // MULTI-COLOR SELECTION & PRESET MANAGEMENT
+  // ----------------------------------------------------------------------------
+  const COLOR_PRESETS = [
+    'Red', 'Maroon', 'Wine', 'Pink', 'Rani Pink', 'Orange', 'Rust', 'Yellow', 'Mustard',
+    'Green', 'Bottle Green', 'Pista Green', 'Teal', 'Royal Blue', 'Navy Blue',
+    'Purple', 'Brown', 'Black', 'White', 'Cream', 'Gold', 'Multicolor'
+  ];
+
+  function getColorSwatchHelper(name) {
+    if (typeof getColorSwatch === 'function') return getColorSwatch(name);
+    return '#94a3b8';
+  }
+
+  function renderAdminColorTags() {
+    if (!dom.adminColorTagsList) return;
+    if (!state.formColors || state.formColors.length === 0) {
+      dom.adminColorTagsList.innerHTML = `<span style="font-size: 0.74rem; color: #94a3b8; font-style: italic;">No colors added yet. Type a color name or click a quick preset below.</span>`;
+      if (dom.adminColorTagsHint) dom.adminColorTagsHint.style.display = 'none';
+      if (dom.inputColor) dom.inputColor.value = '';
+      renderColorPresets();
+      return;
+    }
+
+    dom.adminColorTagsList.innerHTML = state.formColors.map((colorName, idx) => {
+      const isPrimary = idx === 0;
+      const swatch = getColorSwatchHelper(colorName);
+      const swatchStyle = swatch.startsWith('linear') ? `background: ${swatch};` : `background-color: ${swatch};`;
+      const isLight = ['white', 'cream', 'off white', 'beige'].includes(colorName.toLowerCase());
+      return `
+        <span class="admin-color-tag-pill ${isPrimary ? 'is-primary' : ''}">
+          <span class="admin-color-tag-swatch ${isLight ? 'is-light' : ''}" style="${swatchStyle}"></span>
+          <span>${escapeHtml(colorName)}</span>
+          ${isPrimary ? '<small style="color: #b45309; font-size: 0.65rem; font-weight: 700;" title="Default Color">★ Primary</small>' : ''}
+          <button type="button" class="btn-remove-color-tag" data-color-idx="${idx}" aria-label="Remove ${escapeHtml(colorName)}">×</button>
+        </span>
+      `;
+    }).join('');
+
+    if (dom.adminColorTagsHint) {
+      dom.adminColorTagsHint.style.display = state.formColors.length > 1 ? 'block' : 'none';
+    }
+
+    // Keep inputColor in sync for form submission validity
+    if (dom.inputColor) {
+      dom.inputColor.value = state.formColors.join(', ');
+    }
+
+    dom.adminColorTagsList.querySelectorAll('.btn-remove-color-tag').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-color-idx'), 10);
+        if (!isNaN(idx)) {
+          state.formColors.splice(idx, 1);
+          renderAdminColorTags();
+        }
+      });
+    });
+
+    renderColorPresets();
+  }
+
+  function addColorTag(name) {
+    if (!name) return;
+    const trimmed = String(name).trim();
+    if (!trimmed) return;
+    if (!state.formColors) state.formColors = [];
+    const exists = state.formColors.some(c => c.toLowerCase() === trimmed.toLowerCase());
+    if (!exists) {
+      state.formColors.push(trimmed);
+      renderAdminColorTags();
+    }
+  }
+
+  function setColorTags(colorsArray) {
+    if (Array.isArray(colorsArray)) {
+      state.formColors = colorsArray.map(c => String(c).trim()).filter(Boolean);
+    } else if (typeof colorsArray === 'string') {
+      state.formColors = colorsArray.split(/[,/|]+/).map(c => c.trim()).filter(Boolean);
+    } else {
+      state.formColors = [];
+    }
+    renderAdminColorTags();
+  }
+
+  function renderColorPresets() {
+    if (!dom.colorPresetsList) return;
+    const currentLower = (state.formColors || []).map(c => c.toLowerCase());
+    dom.colorPresetsList.innerHTML = COLOR_PRESETS.map(presetName => {
+      const isAdded = currentLower.includes(presetName.toLowerCase());
+      const swatch = getColorSwatchHelper(presetName);
+      const swatchStyle = swatch.startsWith('linear') ? `background: ${swatch};` : `background-color: ${swatch};`;
+      const isLight = ['white', 'cream', 'off white', 'beige'].includes(presetName.toLowerCase());
+      return `
+        <button type="button" class="btn-color-preset ${isAdded ? 'is-added' : ''}" data-preset="${escapeHtml(presetName)}">
+          <span class="color-swatch-circle ${isLight ? 'is-light' : ''}" style="width: 10px; height: 10px; ${swatchStyle}"></span>
+          <span>${escapeHtml(presetName)}</span>
+          <span style="font-size: 0.65rem;">${isAdded ? '✓' : '＋'}</span>
+        </button>
+      `;
+    }).join('');
+
+    dom.colorPresetsList.querySelectorAll('.btn-color-preset').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = btn.getAttribute('data-preset');
+        if (!p) return;
+        const idx = (state.formColors || []).findIndex(c => c.toLowerCase() === p.toLowerCase());
+        if (idx >= 0) {
+          state.formColors.splice(idx, 1);
+        } else {
+          if (!state.formColors) state.formColors = [];
+          state.formColors.push(p);
+        }
+        renderAdminColorTags();
+      });
+    });
+  }
+
+  // ----------------------------------------------------------------------------
   // PHOTO COLOR DETECTION (CANVAS-BASED 50x50 CLUSTERING & HSL MAPPING)
   // ----------------------------------------------------------------------------
   async function triggerPhotoColorDetection(photoObj) {
@@ -650,12 +777,12 @@
       if (!result) return;
 
       const overwrite = dom.chkOverwriteExisting ? dom.chkOverwriteExisting.checked : false;
-      const isColorEmpty = !dom.inputColor || !dom.inputColor.value || dom.inputColor.value.trim() === '';
+      const hasColors = state.formColors && state.formColors.length > 0;
 
-      // Auto-fill dominant color if empty or overwrite checked
-      if (result.dominant && (isColorEmpty || overwrite) && dom.inputColor) {
-        dom.inputColor.value = result.dominant;
-        markField(dom.inputColor, 'autofill');
+      // Auto-add dominant color if empty or overwrite checked
+      if (result.dominant && (!hasColors || overwrite)) {
+        addColorTag(result.dominant);
+        if (dom.inputColor) markField(dom.inputColor, 'autofill');
       }
 
       // Render top suggestions as clickable chips
@@ -666,8 +793,8 @@
 
         if (chips.length > 0) {
           dom.colorChipsList.innerHTML = chips.map(cName => {
-            const isSelected = dom.inputColor && dom.inputColor.value.trim().toLowerCase() === cName.toLowerCase();
-            return `<button type="button" class="btn-color-chip ${isSelected ? 'active' : ''}" data-color="${escapeHtml(cName)}">${escapeHtml(cName)}</button>`;
+            const isSelected = (state.formColors || []).some(c => c.toLowerCase() === cName.toLowerCase());
+            return `<button type="button" class="btn-color-chip ${isSelected ? 'active' : ''}" data-color="${escapeHtml(cName)}">＋ ${escapeHtml(cName)}</button>`;
           }).join('');
 
           dom.colorSuggestionsWrap.style.display = 'flex';
@@ -675,12 +802,10 @@
           dom.colorChipsList.querySelectorAll('.btn-color-chip').forEach(btn => {
             btn.addEventListener('click', () => {
               const c = btn.getAttribute('data-color');
-              if (dom.inputColor) {
-                dom.inputColor.value = c;
-                markField(dom.inputColor, 'autofill');
-                dom.colorChipsList.querySelectorAll('.btn-color-chip').forEach(b => b.classList.remove('active'));
+              if (c) {
+                addColorTag(c);
                 btn.classList.add('active');
-                showToast(`Color selected: ${c}`);
+                showToast(`Color added: ${c}`);
               }
             });
           });
@@ -1300,10 +1425,15 @@
       const widthVal = dom.inputWidth && dom.inputWidth.value !== '' ? parseFloat(dom.inputWidth.value) : null;
       const blouseVal = dom.inputBlouse ? dom.inputBlouse.value.trim() : null;
 
+      const colorsToSave = state.formColors && state.formColors.length > 0
+        ? state.formColors
+        : (dom.inputColor.value.trim() ? dom.inputColor.value.split(/[,/|]+/).map(s => s.trim()).filter(Boolean) : ['Multicolor']);
+
       const payload = {
         name: name,
         fabric: dom.inputFabric.value.trim() || 'Traditional Weave',
-        color: dom.inputColor.value.trim() || 'Multicolor',
+        color: colorsToSave.join(', '),
+        available_colors: colorsToSave,
         pattern: dom.inputPattern.value.trim() || 'Traditional',
         border: dom.inputBorder.value.trim() || 'Zari Border',
         category: dom.inputCategory.value.trim() || 'Handloom',
@@ -1328,11 +1458,12 @@
           .update(payload)
           .eq('id', state.editingSareeId);
 
-        // Safe retry if dimension or shipping_charges columns have not been added to Supabase table yet
-        if (error && error.message && (error.message.includes('shipping_charges') || error.message.includes('length_m') || error.message.includes('width_in') || error.message.includes('blouse'))) {
+        // Safe retry if dimension or available_colors or shipping_charges columns have not been added to Supabase table yet
+        if (error && error.message && (error.message.includes('shipping_charges') || error.message.includes('available_colors') || error.message.includes('length_m') || error.message.includes('width_in') || error.message.includes('blouse'))) {
           console.warn('Columns missing from database, saving without optional columns:', error.message);
           const safePayload = { ...payload };
           delete safePayload.shipping_charges;
+          delete safePayload.available_colors;
           delete safePayload.length_m;
           delete safePayload.width_in;
           delete safePayload.blouse;
@@ -1352,10 +1483,11 @@
           .select('id');
 
         // Safe retry if columns missing
-        if (error && error.message && (error.message.includes('shipping_charges') || error.message.includes('length_m') || error.message.includes('width_in') || error.message.includes('blouse'))) {
+        if (error && error.message && (error.message.includes('shipping_charges') || error.message.includes('available_colors') || error.message.includes('length_m') || error.message.includes('width_in') || error.message.includes('blouse'))) {
           console.warn('Columns missing from database, inserting without optional columns:', error.message);
           const safePayload = { ...payload };
           delete safePayload.shipping_charges;
+          delete safePayload.available_colors;
           delete safePayload.length_m;
           delete safePayload.width_in;
           delete safePayload.blouse;
@@ -1412,6 +1544,8 @@
     if (dom.inputWidth) dom.inputWidth.value = '';
     if (dom.inputBlouse) dom.inputBlouse.value = '';
 
+    setColorTags([]);
+
     if (dom.autofillStatusBanner) {
       dom.autofillStatusBanner.innerHTML = '';
       dom.autofillStatusBanner.style.display = 'none';
@@ -1447,11 +1581,19 @@
     dom.inputFabric.value = saree.fabric || '';
     dom.inputCategory.value = saree.category || '';
     dom.inputStatus.value = saree.status || 'Available';
-    dom.inputColor.value = saree.color || '';
     dom.inputPattern.value = saree.pattern || '';
     dom.inputBorder.value = saree.border || '';
     dom.inputOccasion.value = saree.occasion || '';
     dom.inputDescription.value = saree.description || '';
+
+    // Load available colors
+    let colors = [];
+    if (Array.isArray(saree.available_colors) && saree.available_colors.length > 0) {
+      colors = saree.available_colors;
+    } else if (saree.color) {
+      colors = saree.color.split(/[,/|]+/).map(s => s.trim()).filter(Boolean);
+    }
+    setColorTags(colors);
 
     // Dimensions & Blouse
     if (dom.inputLength) dom.inputLength.value = (saree.length_m !== null && saree.length_m !== undefined) ? saree.length_m : '';
@@ -1513,11 +1655,18 @@
     dom.inputFabric.value = saree.fabric || '';
     dom.inputCategory.value = saree.category || '';
     dom.inputStatus.value = 'Available';
-    dom.inputColor.value = saree.color || '';
     dom.inputPattern.value = saree.pattern || '';
     dom.inputBorder.value = saree.border || '';
     dom.inputOccasion.value = saree.occasion || '';
     dom.inputDescription.value = saree.description || '';
+
+    let colors = [];
+    if (Array.isArray(saree.available_colors) && saree.available_colors.length > 0) {
+      colors = saree.available_colors;
+    } else if (saree.color) {
+      colors = saree.color.split(/[,/|]+/).map(s => s.trim()).filter(Boolean);
+    }
+    setColorTags(colors);
 
     // Dimensions & Blouse
     if (dom.inputLength) dom.inputLength.value = (saree.length_m !== null && saree.length_m !== undefined) ? saree.length_m : '';
@@ -2830,6 +2979,32 @@
     }
     if (dom.inputPrice) {
       dom.inputPrice.addEventListener('input', handleManualSellingPriceChange);
+    }
+
+    // Color Manager: Add Custom Color via button or Enter key
+    if (dom.btnAddColor) {
+      dom.btnAddColor.addEventListener('click', () => {
+        if (dom.inputColor && dom.inputColor.value) {
+          const val = dom.inputColor.value.trim();
+          if (val) {
+            addColorTag(val);
+            dom.inputColor.value = '';
+          }
+        }
+      });
+    }
+
+    if (dom.inputColor) {
+      dom.inputColor.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const val = dom.inputColor.value.trim();
+          if (val) {
+            addColorTag(val);
+            dom.inputColor.value = '';
+          }
+        }
+      });
     }
 
     // Saree Form Submit & Cancel

@@ -215,10 +215,11 @@ create policy "Authenticated admins can delete reviews"
 -- ==============================================================================
 -- 5. SAREE DIMENSIONS & SECURE PRIVATE TABLE (COST PRICE & ORIGINAL MESSAGE)
 -- ==============================================================================
--- Optional dimensions on public sarees table (visible to customers on detail page):
+-- Optional dimensions and color variants on public sarees table:
 alter table public.sarees add column if not exists length_m numeric;
 alter table public.sarees add column if not exists width_in numeric;
 alter table public.sarees add column if not exists blouse text;
+alter table public.sarees add column if not exists available_colors text[] default '{}'::text[];
 
 -- ------------------------------------------------------------------------------
 -- Private table: saree_private

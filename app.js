@@ -28,6 +28,7 @@
     activeCategory: 'all',
     activeFabric: 'all',
     activeColor: 'all',
+    selectedSareeColor: '',
     maxPrice: Infinity,
     priceMin: 0,
     priceMax: 50000,
@@ -159,6 +160,59 @@
     const cleanNumber = (CONFIG.WHATSAPP_NUMBER || '').replace(/[^0-9]/g, '');
     return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(msg)}`;
   }
+
+  function getSareeColorSwatch(colorName) {
+    if (typeof window.getColorSwatch === 'function') {
+      return window.getColorSwatch(colorName);
+    }
+    if (!colorName) return '#94a3b8';
+    const c = String(colorName).toLowerCase();
+    if (c.includes('multi')) return 'linear-gradient(135deg, #ef4444, #eab308, #22c55e, #3b82f6, #a855f7)';
+    if (c.includes('maroon') || c.includes('wine') || c.includes('burgundy')) return '#6b1d2f';
+    if (c.includes('red') || c.includes('crimson') || c.includes('cherry') || c.includes('laal')) return '#dc2626';
+    if (c.includes('pink') || c.includes('rani') || c.includes('rose') || c.includes('gulabi') || c.includes('magenta')) return '#ec4899';
+    if (c.includes('orange') || c.includes('rust') || c.includes('saffron') || c.includes('narangi') || c.includes('kesari') || c.includes('peach')) return '#ea580c';
+    if (c.includes('mustard')) return '#d97706';
+    if (c.includes('yellow') || c.includes('haldi') || c.includes('lemon') || c.includes('peela')) return '#eab308';
+    if (c.includes('gold') || c.includes('golden') || c.includes('zari') || c.includes('sona')) return 'linear-gradient(135deg, #d4af37, #f3e5ab, #aa771c)';
+    if (c.includes('teal') || c.includes('rama') || c.includes('peacock') || c.includes('sea green')) return '#0d9488';
+    if (c.includes('pista') || c.includes('mint')) return '#86efac';
+    if (c.includes('green') || c.includes('emerald') || c.includes('bottle') || c.includes('hara')) return '#15803d';
+    if (c.includes('navy')) return '#1e3a8a';
+    if (c.includes('royal') || c.includes('blue') || c.includes('sky') || c.includes('neela') || c.includes('indigo')) return '#2563eb';
+    if (c.includes('purple') || c.includes('violet') || c.includes('lavender') || c.includes('jamuni') || c.includes('baingani')) return '#7e22ce';
+    if (c.includes('brown') || c.includes('chocolate') || c.includes('coffee')) return '#78350f';
+    if (c.includes('black') || c.includes('kaala')) return '#18181b';
+    if (c.includes('white') || c.includes('safed')) return '#ffffff';
+    if (c.includes('cream') || c.includes('off white') || c.includes('offwhite') || c.includes('beige') || c.includes('ivory')) return '#fef3c7';
+    if (c.includes('grey') || c.includes('gray') || c.includes('silver')) return '#94a3b8';
+    return '#94a3b8';
+  }
+
+  function buildSareeOrderMessage(saree, selectedColor, selectedPhotoUrl) {
+    const currentUrl = window.location.href;
+    const shipping = getShippingInfo(saree);
+    const totalAmount = saree.price + shipping.amount;
+    const shippingLine = shipping.isFree 
+      ? `*Shipping:* Free Delivery (Pan-India)` 
+      : `*Shipping:* ${formatPrice(shipping.amount)} (Pan-India Insured Courier)`;
+    const totalLine = shipping.isFree 
+      ? `*Total:* ${formatPrice(saree.price)}` 
+      : `*Total:* ${formatPrice(totalAmount)} (Price + Shipping)`;
+    
+    const color = selectedColor || saree.color || 'As shown in photo';
+    const photo = selectedPhotoUrl || saree.mainImage || (saree.images && saree.images[0]) || '';
+
+    let msg = `Hello ${CONFIG.SHOP_NAME},\n\nI would like to order this saree:\n*Saree ID:* #${saree.id}\n*Name:* ${saree.name}\n*Selected Color:* ${color}\n*Price:* ${formatPrice(saree.price)}\n${shippingLine}\n${totalLine}\n*Fabric:* ${saree.fabric}`;
+
+    if (photo && !photo.startsWith('data:image/svg+xml')) {
+      msg += `\n\n*Saree Photo:*\n${photo}`;
+    }
+
+    msg += `\n\n*Catalog Link:*\n${currentUrl}\n\nPlease confirm availability and payment details.`;
+    return msg;
+  }
+
 
   // ----------------------------------------------------------------------------
   // SUPABASE CLIENT INITIALIZATION
@@ -422,11 +476,23 @@
       const isSold = (row.status || '').toLowerCase() === 'sold';
       const cleanVideoUrl = sanitizeVideoUrl(row.video_url);
 
+      // Normalize available colors list
+      let colorsList = [];
+      if (Array.isArray(row.available_colors) && row.available_colors.length > 0) {
+        colorsList = row.available_colors.map(c => String(c).trim()).filter(Boolean);
+      } else if (row.color) {
+        colorsList = String(row.color).split(/[,/|]+/).map(c => c.trim()).filter(Boolean);
+      }
+      if (colorsList.length === 0) {
+        colorsList = ['Multicolor'];
+      }
+
       return {
         id: String(row.id),
         name: (row.name || 'Untitled Saree').trim(),
         fabric: (row.fabric || 'Traditional Weave').trim(),
-        color: (row.color || 'Multicolor').trim(),
+        color: colorsList[0] || 'Multicolor',
+        available_colors: colorsList,
         pattern: (row.pattern || 'Classic').trim(),
         border: (row.border || 'Zari Border').trim(),
         category: (row.category || 'Handloom').trim(),
@@ -503,7 +569,11 @@
     state.allSarees.forEach(s => {
       if (s.category) cats.add(s.category);
       if (s.fabric) fabrics.add(s.fabric);
-      if (s.color) colors.add(s.color);
+      if (s.available_colors && s.available_colors.length) {
+        s.available_colors.forEach(c => colors.add(c));
+      } else if (s.color) {
+        colors.add(s.color);
+      }
     });
 
     fillSelect(dom.filterCategory, Array.from(cats).sort(), 'All Categories');
@@ -557,7 +627,10 @@
 
       if (state.activeCategory !== 'all' && s.category !== state.activeCategory) return false;
       if (state.activeFabric !== 'all' && s.fabric !== state.activeFabric) return false;
-      if (state.activeColor !== 'all' && s.color !== state.activeColor) return false;
+      if (state.activeColor !== 'all') {
+        const hasColor = (s.available_colors && s.available_colors.includes(state.activeColor)) || (s.color === state.activeColor);
+        if (!hasColor) return false;
+      }
       if (s.price > state.maxPrice) return false;
       if (state.hideSold && s.isSold) return false;
 
@@ -612,6 +685,9 @@
       const soldBadge = saree.isSold ? `<span class="badge-sold-out">Sold Out</span>` : '';
       const newBadge = (!saree.isSold && saree.isNew) ? `<span class="badge-new">New</span>` : '';
       const videoBadge = saree.video_url ? `<span class="badge-video">▶ Video</span>` : '';
+      const colorsBadge = (saree.available_colors && saree.available_colors.length > 1)
+        ? `<span class="badge-colors-count">🎨 ${saree.available_colors.length} Colors</span>`
+        : '';
       const shipping = getShippingInfo(saree);
 
       return `
@@ -621,6 +697,7 @@
               ${newBadge}
               ${soldBadge}
               ${videoBadge}
+              ${colorsBadge}
               <img 
                 src="${escapeHtml(saree.mainImage)}" 
                 alt="${escapeHtml(saree.name)}" 
@@ -672,6 +749,13 @@
 
     const allImages = saree.images.length > 0 ? saree.images : [PLACEHOLDER_IMG];
 
+    const colorsList = Array.isArray(saree.available_colors) && saree.available_colors.length > 0
+      ? saree.available_colors
+      : (saree.color ? [saree.color] : ['Multicolor']);
+    const initialColor = colorsList[0] || 'Multicolor';
+    state.selectedSareeColor = initialColor;
+    let selectedPhotoUrl = saree.mainImage || (allImages[0] || '');
+
     // Build unified gallery items: Video as FIRST item if available
     const galleryItems = [];
     if (saree.video_url) {
@@ -702,14 +786,8 @@
     const currentUrl = window.location.href;
     const shipping = getShippingInfo(saree);
     const totalAmount = saree.price + shipping.amount;
-    const shippingLine = shipping.isFree 
-      ? `*Shipping:* Free Delivery (Pan-India)` 
-      : `*Shipping:* ${formatPrice(shipping.amount)} (Pan-India Insured Courier)`;
-    const totalLine = shipping.isFree 
-      ? `*Total:* ${formatPrice(saree.price)}` 
-      : `*Total:* ${formatPrice(totalAmount)} (Price + Shipping)`;
 
-    const orderMessage = `Hello ${CONFIG.SHOP_NAME},\n\nI would like to order this saree:\n*Saree ID:* ${saree.id}\n*Name:* ${saree.name}\n*Price:* ${formatPrice(saree.price)}\n${shippingLine}\n${totalLine}\n*Fabric:* ${saree.fabric}\n*Link:* ${currentUrl}\n\nPlease confirm availability and payment details.`;
+    const orderMessage = buildSareeOrderMessage(saree, initialColor, selectedPhotoUrl);
     const orderWaUrl = buildWhatsAppUrl(orderMessage);
 
     const askSimilarMessage = `Hello ${CONFIG.SHOP_NAME},\n\nI liked saree *${saree.name}* (ID: ${saree.id}) which is sold out. Do you have similar designs available?\n*Link:* ${currentUrl}`;
@@ -773,7 +851,7 @@
     let actionButtonsHtml = '';
     if (!saree.isSold) {
       actionButtonsHtml = `
-        <a href="${orderWaUrl}" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-order">
+        <a href="${orderWaUrl}" id="btn-whatsapp-order-link" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-order">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
             <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
           </svg>
@@ -790,6 +868,31 @@
         </a>
       `;
     }
+
+    const colorSelectionHtml = colorsList.length > 0 ? `
+      <!-- Available Colors Selector -->
+      <div class="detail-color-selection-box">
+        <div class="detail-color-header">
+          <span class="detail-color-label">Available Colors (${colorsList.length}):</span>
+          <span class="detail-selected-color-name" id="detail-selected-color-name">${escapeHtml(initialColor)}</span>
+        </div>
+        <div class="detail-color-chips-row" role="radiogroup" aria-label="Available Saree Colors">
+          ${colorsList.map((c, idx) => `
+            <button type="button" 
+              class="btn-color-variant-chip ${c === initialColor ? 'active' : ''}" 
+              data-color="${escapeHtml(c)}" 
+              data-color-idx="${idx}"
+              role="radio"
+              aria-checked="${c === initialColor ? 'true' : 'false'}"
+              title="Select ${escapeHtml(c)}">
+              <span class="color-swatch-circle" style="background: ${getSareeColorSwatch(c)};"></span>
+              <span class="color-variant-name">${escapeHtml(c)}</span>
+            </button>
+          `).join('')}
+        </div>
+        <p class="detail-color-selection-tip">💡 Tap any color above to preview and order that specific shade on WhatsApp.</p>
+      </div>
+    ` : '';
 
     dom.sareeDetailContent.innerHTML = `
       <div class="detail-grid">
@@ -829,6 +932,8 @@
             </div>
           </div>
 
+          ${colorSelectionHtml}
+
           <!-- Specifications Table -->
           <div class="specs-grid">
             <div class="spec-item">
@@ -836,8 +941,8 @@
               <span class="spec-val">${escapeHtml(saree.fabric)}</span>
             </div>
             <div class="spec-item">
-              <span class="spec-key">Color</span>
-              <span class="spec-val">${escapeHtml(saree.color)}</span>
+              <span class="spec-key">Selected Color</span>
+              <span class="spec-val" id="spec-color-val">${escapeHtml(initialColor)}</span>
             </div>
             <div class="spec-item">
               <span class="spec-key">Pattern</span>
@@ -922,7 +1027,52 @@
       <div class="detail-reviews-wrapper" id="detail-reviews-container"></div>
     `;
 
-    attachGalleryEvents();
+    function updateWhatsAppOrderUrl() {
+      const waBtn = document.getElementById('btn-whatsapp-order-link');
+      if (!waBtn) return;
+      const updatedMsg = buildSareeOrderMessage(saree, state.selectedSareeColor, selectedPhotoUrl);
+      waBtn.href = buildWhatsAppUrl(updatedMsg);
+    }
+
+    const colorChips = dom.sareeDetailContent.querySelectorAll('.btn-color-variant-chip');
+    colorChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        const chosen = chip.getAttribute('data-color');
+        if (!chosen) return;
+        state.selectedSareeColor = chosen;
+
+        colorChips.forEach(c => {
+          const isActive = c === chip;
+          c.classList.toggle('active', isActive);
+          c.setAttribute('aria-checked', isActive ? 'true' : 'false');
+        });
+
+        const nameEl = document.getElementById('detail-selected-color-name');
+        if (nameEl) nameEl.textContent = chosen;
+
+        const specColorEl = document.getElementById('spec-color-val');
+        if (specColorEl) specColorEl.textContent = chosen;
+
+        const chipIdx = parseInt(chip.getAttribute('data-color-idx'), 10);
+        if (!isNaN(chipIdx) && chipIdx < allImages.length) {
+          selectedPhotoUrl = allImages[chipIdx];
+          const slides = dom.sareeDetailContent.querySelectorAll('.gallery-slide');
+          const targetSlideIdx = saree.video_url ? chipIdx + 1 : chipIdx;
+          if (slides[targetSlideIdx]) {
+            slides[targetSlideIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          }
+        }
+
+        updateWhatsAppOrderUrl();
+      });
+    });
+
+    attachGalleryEvents((slideIdx, imgUrl) => {
+      if (imgUrl) {
+        selectedPhotoUrl = imgUrl;
+        updateWhatsAppOrderUrl();
+      }
+    });
 
     const shareBtn = document.getElementById('btn-share-saree');
     if (shareBtn) {
@@ -1143,7 +1293,7 @@
     });
   }
 
-  function attachGalleryEvents() {
+  function attachGalleryEvents(onSlideChange) {
     const gallery = document.getElementById('gallery-container');
     const thumbs = dom.sareeDetailContent.querySelectorAll('.thumb-item');
     const slides = dom.sareeDetailContent.querySelectorAll('.gallery-slide');
@@ -1153,6 +1303,10 @@
         const idx = parseInt(thumb.getAttribute('data-index'), 10);
         if (slides[idx]) {
           slides[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+          if (typeof onSlideChange === 'function') {
+            const img = slides[idx].getAttribute('data-img');
+            onSlideChange(idx, img);
+          }
         }
       });
     });
@@ -1195,6 +1349,11 @@
         const currentIdx = Math.round(gallery.scrollLeft / width);
         thumbs.forEach((t, i) => t.classList.toggle('active', i === currentIdx));
 
+        if (slides[currentIdx] && typeof onSlideChange === 'function') {
+          const img = slides[currentIdx].getAttribute('data-img');
+          onSlideChange(currentIdx, img);
+        }
+
         // Pause playing videos when user swipes to a different slide
         const videos = gallery.querySelectorAll('video');
         videos.forEach(v => {
@@ -1231,9 +1390,11 @@
   }
 
   function handleShare(saree) {
+    const chosenColor = state.selectedSareeColor || saree.color || '';
+    const colorText = chosenColor ? ` in ${chosenColor}` : '';
     const shareData = {
       title: `${saree.name} | ${CONFIG.SHOP_NAME}`,
-      text: `Take a look at this stunning ${saree.fabric} saree (${formatPrice(saree.price)}) at ${CONFIG.SHOP_NAME}!`,
+      text: `Take a look at this stunning ${saree.fabric} saree${colorText} (${formatPrice(saree.price)}) at ${CONFIG.SHOP_NAME}!`,
       url: window.location.href
     };
 
