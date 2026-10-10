@@ -40,6 +40,13 @@ const CONFIG = {
   // Currency symbol
   CURRENCY_SYMBOL: "₹",
 
+  // Shipping charges configuration
+  SHIPPING: {
+    DEFAULT_CHARGE: 0, // 0 = Free Delivery by default, or set a flat amount e.g. 100
+    FREE_LABEL: "Free Delivery",
+    POLICY_TEXT: "Pan-India Insured Shipping"
+  },
+
   // How long to cache catalog data in sessionStorage (in minutes)
   CACHE_TTL_MINUTES: 5,
 
@@ -156,6 +163,7 @@ const CONFIG = {
       occasion: "Wedding / Reception",
       description: "Magnificent heirloom Kanjivaram silk saree woven with 2g pure gold zari. Features intricate peacock and chakra motifs along the traditional korvai border. Paired with a running unstitched blouse piece.",
       price: 14500,
+      shipping_charges: 0,
       images: [
         "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80",
         "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=1000&q=80",
@@ -164,7 +172,32 @@ const CONFIG = {
       video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
       video_poster: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80",
       status: "Available",
-      created_at: new Date(Date.now() - 2 * 86400000).toISOString()
+      created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+      reviews: [
+        {
+          id: 1,
+          customer_name: "Pooja Sharma (Pune)",
+          rating: 5,
+          comment: "The pure zari work on the pallu is breathtaking! Wore it for my cousin's wedding reception and received countless compliments. Exactly as shown in the live drape video.",
+          photos: [
+            "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=800&q=80"
+          ],
+          video_url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+          created_at: new Date(Date.now() - 4 * 86400000).toISOString()
+        },
+        {
+          id: 2,
+          customer_name: "Dr. Ananya Sen (Kolkata)",
+          rating: 5,
+          comment: "Authentic Kanjivaram silk weight and fall! Shipping was fast and the unboxing packaging was very premium.",
+          photos: [
+            "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80"
+          ],
+          video_url: null,
+          created_at: new Date(Date.now() - 8 * 86400000).toISOString()
+        }
+      ]
     },
     {
       id: 102,
@@ -177,6 +210,7 @@ const CONFIG = {
       occasion: "Festivals / Sangeet",
       description: "Handcrafted Banarasi katan silk saree featuring delicate floral kadwa butas across the body and an opulent meenakari zari border. Comes with matching brocade blouse piece.",
       price: 8900,
+      shipping_charges: 0,
       images: [
         "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=1000&q=80",
         "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80"
@@ -184,7 +218,20 @@ const CONFIG = {
       video_url: null,
       video_poster: null,
       status: "Available",
-      created_at: new Date(Date.now() - 3 * 86400000).toISOString()
+      created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
+      reviews: [
+        {
+          id: 3,
+          customer_name: "Sneha Kulkarni (Mumbai)",
+          rating: 5,
+          comment: "The emerald green shade is so rich and regal. The Meenakari border detailing is super crisp and clean. 100% recommended!",
+          photos: [
+            "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=800&q=80"
+          ],
+          video_url: null,
+          created_at: new Date(Date.now() - 6 * 86400000).toISOString()
+        }
+      ]
     },
     {
       id: 103,
@@ -197,13 +244,15 @@ const CONFIG = {
       occasion: "Day Weddings / Engagement",
       description: "Lightweight and airy Chanderi silk saree with a sheer texture and glistening gold zari coin butis. Ideal for modern celebrations and day festivities.",
       price: 4950,
+      shipping_charges: 0,
       images: [
         "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1000&q=80"
       ],
       video_url: null,
       video_poster: null,
       status: "Available",
-      created_at: new Date(Date.now() - 4 * 86400000).toISOString()
+      created_at: new Date(Date.now() - 4 * 86400000).toISOString(),
+      reviews: []
     },
     {
       id: 104,
@@ -216,6 +265,7 @@ const CONFIG = {
       occasion: "Pooja / Traditional Gatherings",
       description: "Rich textured wild Tussar silk saree adorned with artisanal Madhubani folk motifs painted with natural dyes. Authentic handloom with Silk Mark guarantee.",
       price: 6750,
+      shipping_charges: 0,
       images: [
         "https://images.unsplash.com/photo-1609357605129-26f69add5d6e?auto=format&fit=crop&w=1000&q=80"
       ],
@@ -235,6 +285,7 @@ const CONFIG = {
       occasion: "Haldi / Mehendi",
       description: "Dreamy sheer organza silk drape with subtle sheen, delicate pastel threadwork flowers, and a designer scalloped cutwork border. Feather-light and stylish.",
       price: 5200,
+      shipping_charges: 0,
       images: [
         "https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?auto=format&fit=crop&w=1000&q=80",
         "https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=1000&q=80"
@@ -255,6 +306,7 @@ const CONFIG = {
       occasion: "Cocktail / Evening Reception",
       description: "Fluid pure georgette drape in dramatic wine shade, elevated with tone-on-tone twinkling micro-sequins. Flows gracefully and hugs your silhouette effortlessly.",
       price: 7400,
+      shipping_charges: 0,
       images: [
         "https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=1000&q=80"
       ],

@@ -19,12 +19,16 @@ create table if not exists public.sarees (
   occasion text,
   description text,
   price numeric not null check (price >= 0),
+  shipping_charges numeric default 0 check (shipping_charges >= 0),
   images text[] default '{}'::text[], -- First element is primary cover image
   video_url text,                     -- URL to uploaded MP4/WebM or YouTube link
   video_poster text,                  -- First frame poster thumbnail URL
   status text not null default 'Available' check (status in ('Available', 'Sold')),
   created_at timestamptz not null default now()
 );
+
+-- Migration for existing databases (safe to run multiple times):
+alter table public.sarees add column if not exists shipping_charges numeric default 0 check (shipping_charges >= 0);
 
 -- Performance Indexes
 create index if not exists idx_sarees_category on public.sarees (category);
@@ -164,3 +168,46 @@ select
   'Available',
   now() - interval '3 days'
 where not exists (select 1 from public.sarees where name like 'Banarasi Katan Silk%');
+
+
+-- ==============================================================================
+-- 4. CREATE SAREE REVIEWS TABLE (Admin-Managed Customer Reviews with Photos & Video)
+-- ==============================================================================
+create table if not exists public.saree_reviews (
+  id bigint generated always as identity primary key,
+  saree_id bigint not null references public.sarees(id) on delete cascade,
+  customer_name text not null,
+  rating integer not null default 5 check (rating >= 1 and rating <= 5),
+  comment text not null,
+  photos text[] default '{}'::text[],
+  video_url text,
+  created_at timestamptz not null default now()
+);
+
+-- Performance Indexes
+create index if not exists idx_saree_reviews_saree_id on public.saree_reviews (saree_id);
+create index if not exists idx_saree_reviews_created_at on public.saree_reviews (created_at desc);
+
+-- Row Level Security (RLS)
+alter table public.saree_reviews enable row level security;
+
+-- Drop existing policies if re-running
+drop policy if exists "Public reviews are viewable by everyone" on public.saree_reviews;
+drop policy if exists "Authenticated admins can insert reviews" on public.saree_reviews;
+drop policy if exists "Authenticated admins can update reviews" on public.saree_reviews;
+drop policy if exists "Authenticated admins can delete reviews" on public.saree_reviews;
+
+-- Public can view reviews
+create policy "Public reviews are viewable by everyone"
+  on public.saree_reviews for select using (true);
+
+-- Only logged-in admin can insert, update, delete reviews
+create policy "Authenticated admins can insert reviews"
+  on public.saree_reviews for insert to authenticated with check (true);
+
+create policy "Authenticated admins can update reviews"
+  on public.saree_reviews for update to authenticated using (true) with check (true);
+
+create policy "Authenticated admins can delete reviews"
+  on public.saree_reviews for delete to authenticated using (true);
+

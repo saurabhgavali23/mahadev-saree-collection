@@ -118,6 +118,21 @@
     return `${CONFIG.CURRENCY_SYMBOL}${new Intl.NumberFormat('en-US').format(amount)}`;
   }
 
+  function getShippingInfo(saree) {
+    const raw = (saree && saree.shipping_charges !== undefined && saree.shipping_charges !== null)
+      ? Number(saree.shipping_charges)
+      : (CONFIG.SHIPPING ? Number(CONFIG.SHIPPING.DEFAULT_CHARGE) : 0);
+    const amount = isNaN(raw) || raw < 0 ? 0 : raw;
+    const isFree = amount <= 0;
+    return {
+      isFree: isFree,
+      amount: amount,
+      tagText: isFree ? '🚚 Free Delivery' : `+ ${formatPrice(amount)} Delivery`,
+      badgeText: isFree ? '🚚 Free Delivery' : `+ ${formatPrice(amount)} Shipping`,
+      detailText: isFree ? 'Free Delivery across India' : `${formatPrice(amount)} Insured Shipping`
+    };
+  }
+
   function isItemNew(createdAtStr) {
     if (!createdAtStr) return false;
     try {
@@ -418,10 +433,14 @@
         occasion: (row.occasion || 'Festive / Wedding').trim(),
         description: (row.description || '').trim(),
         price: parseFloat(row.price) || 0,
+        shipping_charges: row.shipping_charges !== undefined && row.shipping_charges !== null
+          ? (parseFloat(row.shipping_charges) || 0)
+          : (CONFIG.SHIPPING?.DEFAULT_CHARGE ?? 0),
         images: imgs,
         mainImage: imgs[0] || PLACEHOLDER_IMG,
         video_url: cleanVideoUrl,
         video_poster: row.video_poster || null,
+        reviews: Array.isArray(row.reviews) ? row.reviews : [],
         status: isSold ? 'Sold' : 'Available',
         isSold: isSold,
         created_at: row.created_at || new Date().toISOString(),
@@ -590,6 +609,7 @@
       const soldBadge = saree.isSold ? `<span class="badge-sold-out">Sold Out</span>` : '';
       const newBadge = (!saree.isSold && saree.isNew) ? `<span class="badge-new">New</span>` : '';
       const videoBadge = saree.video_url ? `<span class="badge-video">▶ Video</span>` : '';
+      const shipping = getShippingInfo(saree);
 
       return `
         <article class="saree-card ${saree.isSold ? 'is-sold' : ''}" data-id="${escapeHtml(saree.id)}">
@@ -610,7 +630,10 @@
               <span class="card-meta">${escapeHtml(saree.fabric)} • ${escapeHtml(saree.category)}</span>
               <h3 class="card-title">${escapeHtml(saree.name)}</h3>
               <div class="card-price-row">
-                <span class="card-price">${formatPrice(saree.price)}</span>
+                <div class="card-price-stack">
+                  <span class="card-price">${formatPrice(saree.price)}</span>
+                  <span class="card-shipping-tag ${shipping.isFree ? 'is-free' : 'is-paid'}">${shipping.tagText}</span>
+                </div>
                 <span class="card-cta-hint">${saree.isSold ? 'Sold' : 'View &rarr;'}</span>
               </div>
             </div>
@@ -674,7 +697,16 @@
     });
 
     const currentUrl = window.location.href;
-    const orderMessage = `Hello ${CONFIG.SHOP_NAME},\n\nI would like to order this saree:\n*Saree ID:* ${saree.id}\n*Name:* ${saree.name}\n*Price:* ${formatPrice(saree.price)}\n*Fabric:* ${saree.fabric}\n*Link:* ${currentUrl}\n\nPlease confirm availability and payment details.`;
+    const shipping = getShippingInfo(saree);
+    const totalAmount = saree.price + shipping.amount;
+    const shippingLine = shipping.isFree 
+      ? `*Shipping:* Free Delivery (Pan-India)` 
+      : `*Shipping:* ${formatPrice(shipping.amount)} (Pan-India Insured Courier)`;
+    const totalLine = shipping.isFree 
+      ? `*Total:* ${formatPrice(saree.price)}` 
+      : `*Total:* ${formatPrice(totalAmount)} (Price + Shipping)`;
+
+    const orderMessage = `Hello ${CONFIG.SHOP_NAME},\n\nI would like to order this saree:\n*Saree ID:* ${saree.id}\n*Name:* ${saree.name}\n*Price:* ${formatPrice(saree.price)}\n${shippingLine}\n${totalLine}\n*Fabric:* ${saree.fabric}\n*Link:* ${currentUrl}\n\nPlease confirm availability and payment details.`;
     const orderWaUrl = buildWhatsAppUrl(orderMessage);
 
     const askSimilarMessage = `Hello ${CONFIG.SHOP_NAME},\n\nI liked saree *${saree.name}* (ID: ${saree.id}) which is sold out. Do you have similar designs available?\n*Link:* ${currentUrl}`;
@@ -782,8 +814,16 @@
           <h2 class="detail-title">${escapeHtml(saree.name)}</h2>
 
           <div class="detail-price-row">
-            <span class="detail-price">${formatPrice(saree.price)}</span>
-            <span class="detail-tax-note">Inclusive of all taxes • Insured Shipping</span>
+            <div class="detail-price-col">
+              <span class="detail-price">${formatPrice(saree.price)}</span>
+              <span class="detail-shipping-badge ${shipping.isFree ? 'is-free' : 'is-paid'}">
+                ${shipping.badgeText}
+              </span>
+            </div>
+            <div class="detail-price-meta">
+              ${!shipping.isFree ? `<span class="detail-total-note">Total: <strong>${formatPrice(totalAmount)}</strong></span>` : ''}
+              <span class="detail-tax-note">Inclusive of all taxes • Pan-India Insured</span>
+            </div>
           </div>
 
           <!-- Specifications Table -->
@@ -812,6 +852,12 @@
               <span class="spec-key">Category</span>
               <span class="spec-val">${escapeHtml(saree.category)}</span>
             </div>
+            <div class="spec-item">
+              <span class="spec-key">Shipping</span>
+              <span class="spec-val ${shipping.isFree ? 'highlight-free-shipping' : ''}">
+                ${escapeHtml(shipping.detailText)}
+              </span>
+            </div>
           </div>
 
           <!-- Description -->
@@ -838,6 +884,9 @@
 
         </div>
       </div>
+
+      <!-- Customer Reviews Section -->
+      <div class="detail-reviews-wrapper" id="detail-reviews-container"></div>
     `;
 
     attachGalleryEvents();
@@ -847,8 +896,218 @@
       shareBtn.addEventListener('click', () => handleShare(saree));
     }
 
+    loadAndRenderReviews(sareeId, saree);
+
     renderSimilarSarees(saree);
     window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  function formatDate(isoString) {
+    if (!isoString) return '';
+    try {
+      const d = new Date(isoString);
+      return d.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch (e) {
+      return '';
+    }
+  }
+
+  async function loadAndRenderReviews(sareeId, saree) {
+    const container = document.getElementById('detail-reviews-container');
+    if (!container) return;
+
+    let reviews = [];
+
+    // 1. Try Supabase live table saree_reviews if connected
+    if (state.supabaseClient) {
+      try {
+        const { data, error } = await state.supabaseClient
+          .from('saree_reviews')
+          .select('*')
+          .eq('saree_id', sareeId)
+          .order('created_at', { ascending: false });
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          reviews = data;
+        }
+      } catch (e) {
+        console.warn('Could not query saree_reviews table:', e);
+      }
+    }
+
+    // 2. Try local storage (admin added review locally/offline)
+    if (reviews.length === 0) {
+      try {
+        const local = JSON.parse(localStorage.getItem('msc_local_reviews') || '[]');
+        const matching = local.filter(r => String(r.saree_id) === String(sareeId));
+        if (matching.length > 0) reviews = matching;
+      } catch (e) {}
+    }
+
+    // 3. Fallback to saree.reviews or CONFIG.FALLBACK_DATA
+    if (reviews.length === 0) {
+      if (saree.reviews && saree.reviews.length > 0) {
+        reviews = saree.reviews;
+      } else {
+        const fallback = (CONFIG.FALLBACK_DATA || []).find(s => String(s.id) === String(sareeId));
+        if (fallback && fallback.reviews && fallback.reviews.length > 0) {
+          reviews = fallback.reviews;
+        }
+      }
+    }
+
+    renderReviewsHtml(container, reviews, saree);
+  }
+
+  function renderReviewsHtml(container, reviews, saree) {
+    if (!reviews || reviews.length === 0) {
+      container.innerHTML = `
+        <section class="detail-reviews-section">
+          <div class="reviews-section-header">
+            <div>
+              <h3 class="reviews-section-title">Verified Customer Reviews</h3>
+              <p class="reviews-section-subtitle">Real drape photos, videos, and comments from verified buyers</p>
+            </div>
+            <div class="reviews-guarantee-badge">
+              <span>🛡️ 100% Quality Guaranteed</span>
+            </div>
+          </div>
+          <div class="review-empty-card">
+            <span class="review-empty-icon">✨</span>
+            <h4>No customer reviews yet for this saree</h4>
+            <p>Be the first to drape this authentic handcrafted piece! Every saree is hand-inspected and backed by ${escapeHtml(CONFIG.SHOP_NAME)}'s quality promise.</p>
+          </div>
+        </section>
+      `;
+      return;
+    }
+
+    const avgRating = (reviews.reduce((acc, r) => acc + (parseFloat(r.rating) || 5), 0) / reviews.length).toFixed(1);
+    const starCount = Math.round(parseFloat(avgRating));
+
+    container.innerHTML = `
+      <section class="detail-reviews-section">
+        <div class="reviews-section-header">
+          <div class="reviews-header-info">
+            <h3 class="reviews-section-title">Customer Reviews &amp; Drapes</h3>
+            <p class="reviews-section-subtitle">Authentic feedback, drape photos, and videos from buyers</p>
+          </div>
+          <div class="reviews-summary-card">
+            <div class="reviews-score-col">
+              <span class="reviews-avg-number">${avgRating}</span>
+              <div class="reviews-avg-stars" aria-label="${avgRating} out of 5 stars">${'★'.repeat(starCount)}${'☆'.repeat(5 - starCount)}</div>
+            </div>
+            <div class="reviews-count-meta">
+              <strong>${reviews.length} ${reviews.length === 1 ? 'Verified Review' : 'Verified Reviews'}</strong>
+              <span class="reviews-verified-pill">✓ Admin Verified</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="reviews-cards-list">
+          ${reviews.map(rev => {
+            const rating = parseInt(rev.rating, 10) || 5;
+            const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+            const initial = (rev.customer_name || 'C').trim().charAt(0).toUpperCase();
+            const photos = Array.isArray(rev.photos) ? rev.photos : [];
+            const dateStr = rev.created_at ? formatDate(rev.created_at) : 'Verified Purchase';
+
+            let videoHtml = '';
+            if (rev.video_url) {
+              const vUrl = rev.video_url.trim();
+              const isYt = vUrl.includes('youtube.com') || vUrl.includes('youtu.be');
+              if (isYt) {
+                const match = vUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([a-zA-Z0-9_-]{11})/);
+                const ytId = match ? match[1] : '';
+                if (ytId) {
+                  videoHtml = `
+                    <div class="review-media-block">
+                      <span class="review-media-label">🎥 Customer Drape Video</span>
+                      <div class="review-video-embed yt-aspect">
+                        <iframe 
+                          src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(ytId)}?playsinline=1" 
+                          title="Customer Drape Video" 
+                          frameborder="0" 
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                          allowfullscreen 
+                          loading="lazy">
+                        </iframe>
+                      </div>
+                    </div>
+                  `;
+                }
+              } else {
+                videoHtml = `
+                  <div class="review-media-block">
+                    <span class="review-media-label">🎥 Customer Drape Video</span>
+                    <div class="review-video-embed">
+                      <video controls playsinline preload="metadata" class="review-video-player">
+                        <source src="${escapeHtml(vUrl)}" type="video/mp4">
+                        Your browser does not support HTML5 video.
+                      </video>
+                    </div>
+                  </div>
+                `;
+              }
+            }
+
+            let photosHtml = '';
+            if (photos.length > 0) {
+              photosHtml = `
+                <div class="review-media-block">
+                  <span class="review-media-label">📸 Customer Photos (${photos.length}) <small>(Tap to zoom)</small></span>
+                  <div class="review-photos-grid">
+                    ${photos.map((pUrl, pIdx) => `
+                      <button type="button" class="review-photo-btn" data-img="${escapeHtml(pUrl)}" aria-label="View customer photo ${pIdx + 1} full screen">
+                        <img src="${escapeHtml(pUrl)}" alt="Customer photo ${pIdx + 1}" loading="lazy" onerror="this.src='${PLACEHOLDER_IMG}';">
+                        <span class="review-photo-zoom-icon">🔍</span>
+                      </button>
+                    `).join('')}
+                  </div>
+                </div>
+              `;
+            }
+
+            return `
+              <article class="customer-review-card">
+                <header class="review-card-header">
+                  <div class="reviewer-profile">
+                    <div class="reviewer-avatar" aria-hidden="true">${escapeHtml(initial)}</div>
+                    <div>
+                      <h4 class="reviewer-name">${escapeHtml(rev.customer_name || 'Customer')}</h4>
+                      <div class="reviewer-badges">
+                        <span class="review-verified-badge">✓ Verified Buyer</span>
+                        <time class="review-date">${escapeHtml(dateStr)}</time>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="review-rating-stars" aria-label="${rating} out of 5 stars">${stars}</div>
+                </header>
+
+                <div class="review-comment-body">
+                  <p class="review-comment-text">${escapeHtml(rev.comment || '')}</p>
+                </div>
+
+                ${photosHtml}
+                ${videoHtml}
+              </article>
+            `;
+          }).join('')}
+        </div>
+      </section>
+    `;
+
+    // Lightbox click on customer review photos
+    container.querySelectorAll('.review-photo-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const imgSrc = btn.getAttribute('data-img');
+        if (imgSrc) openLightbox(imgSrc);
+      });
+    });
   }
 
   function attachGalleryEvents() {
@@ -990,7 +1249,9 @@
     }
 
     dom.similarSection.style.display = 'block';
-    dom.similarSareesGrid.innerHTML = similar.map(s => `
+    dom.similarSareesGrid.innerHTML = similar.map(s => {
+      const simShipping = getShippingInfo(s);
+      return `
       <article class="saree-card ${s.isSold ? 'is-sold' : ''}">
         <a href="#/saree/${encodeURIComponent(s.id)}" class="saree-card-link">
           <div class="card-img-wrap">
@@ -1007,13 +1268,17 @@
             <span class="card-meta">${escapeHtml(s.fabric)}</span>
             <h4 class="card-title">${escapeHtml(s.name)}</h4>
             <div class="card-price-row">
-              <span class="card-price">${formatPrice(s.price)}</span>
+              <div class="card-price-stack">
+                <span class="card-price">${formatPrice(s.price)}</span>
+                <span class="card-shipping-tag ${simShipping.isFree ? 'is-free' : 'is-paid'}">${simShipping.tagText}</span>
+              </div>
               <span class="card-cta-hint">View &rarr;</span>
             </div>
           </div>
         </a>
       </article>
-    `).join('');
+      `;
+    }).join('');
   }
 
   function updateMeta(saree) {
