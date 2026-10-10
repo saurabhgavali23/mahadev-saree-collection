@@ -19,6 +19,7 @@
     root.parseSareeText = root.SareeParser.parseSareeText;
     root.runParserTests = root.SareeParser.runParserTests;
     root.extractColorsFromImage = root.SareeParser.extractColorsFromImage;
+    root.getColorSwatch = root.SareeParser.getColorSwatch;
   }
 })(typeof self !== 'undefined' ? self : this, function () {
 
@@ -939,11 +940,40 @@ Width-44 inches
     };
   }
 
+  // ----------------------------------------------------------------------------
+  // COLOR SWATCH HELPER (Returns CSS color or gradient)
+  // ----------------------------------------------------------------------------
+  function getColorSwatch(colorName) {
+    if (!colorName) return '#94a3b8';
+    const c = String(colorName).toLowerCase();
+    if (c.includes('multi')) return 'linear-gradient(135deg, #ef4444, #eab308, #22c55e, #3b82f6, #a855f7)';
+    if (c.includes('maroon') || c.includes('wine') || c.includes('burgundy')) return '#6b1d2f';
+    if (c.includes('red') || c.includes('crimson') || c.includes('cherry') || c.includes('laal')) return '#dc2626';
+    if (c.includes('pink') || c.includes('rani') || c.includes('rose') || c.includes('gulabi') || c.includes('magenta')) return '#ec4899';
+    if (c.includes('orange') || c.includes('rust') || c.includes('saffron') || c.includes('narangi') || c.includes('kesari') || c.includes('peach')) return '#ea580c';
+    if (c.includes('mustard')) return '#d97706';
+    if (c.includes('yellow') || c.includes('haldi') || c.includes('lemon') || c.includes('peela')) return '#eab308';
+    if (c.includes('gold') || c.includes('golden') || c.includes('zari') || c.includes('sona')) return 'linear-gradient(135deg, #d4af37, #f3e5ab, #aa771c)';
+    if (c.includes('teal') || c.includes('rama') || c.includes('peacock') || c.includes('sea green')) return '#0d9488';
+    if (c.includes('pista') || c.includes('mint')) return '#86efac';
+    if (c.includes('green') || c.includes('emerald') || c.includes('bottle') || c.includes('hara')) return '#15803d';
+    if (c.includes('navy')) return '#1e3a8a';
+    if (c.includes('royal') || c.includes('blue') || c.includes('sky') || c.includes('neela') || c.includes('indigo')) return '#2563eb';
+    if (c.includes('purple') || c.includes('violet') || c.includes('lavender') || c.includes('jamuni') || c.includes('baingani')) return '#7e22ce';
+    if (c.includes('brown') || c.includes('chocolate') || c.includes('coffee')) return '#78350f';
+    if (c.includes('black') || c.includes('kaala')) return '#18181b';
+    if (c.includes('white') || c.includes('safed')) return '#ffffff';
+    if (c.includes('cream') || c.includes('off white') || c.includes('offwhite') || c.includes('beige') || c.includes('ivory')) return '#fef3c7';
+    if (c.includes('grey') || c.includes('gray') || c.includes('silver')) return '#94a3b8';
+    return '#94a3b8';
+  }
+
   // Export public API
   return {
     KEYWORDS: KEYWORDS,
     parseSareeText: parseSareeText,
     extractColorsFromImage: extractColorsFromImage,
+    getColorSwatch: getColorSwatch,
     runParserTests: runParserTests
   };
 });

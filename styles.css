@@ -3064,6 +3064,228 @@ a:focus-visible {
   }
 }
 
+/* ==============================================================================
+   MULTI-COLOR SELECTION & ADMIN COLOR TAGS
+   ============================================================================== */
+
+/* Admin Color Tag Manager */
+.admin-color-tags-wrap {
+  margin-top: 0.4rem;
+}
+
+.admin-color-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-height: 24px;
+}
+
+.admin-color-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 3px 8px 3px 6px;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1e293b;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.admin-color-tag-pill.is-primary {
+  border-color: #f59e0b;
+  background-color: #fffbeb;
+}
+
+.admin-color-tag-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+
+.btn-remove-color-tag {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  margin-left: 2px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-remove-color-tag:hover {
+  color: #ef4444;
+}
+
+/* Admin Quick Color Presets */
+.color-presets-wrap {
+  margin-top: 0.45rem;
+  padding: 0.4rem 0.5rem;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: var(--radius-sm);
+}
+
+.color-presets-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
+}
+
+.btn-color-preset {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 0.73rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-color-preset:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background-color: #fff5f7;
+}
+
+.btn-color-preset.is-added {
+  background-color: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+/* Customer Facing: Available Colors Selector Card */
+.detail-color-selection-box {
+  margin-top: 1.15rem;
+  margin-bottom: 0.85rem;
+  padding: 0.95rem 1rem;
+  background-color: #fdfaf6;
+  border: 1px solid #ebdcd0;
+  border-radius: var(--radius-md);
+}
+
+.detail-color-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.detail-color-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.detail-selected-color-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.detail-color-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.btn-color-variant-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #ffffff;
+  border: 1.5px solid #dcd3cb;
+  padding: 0.38rem 0.8rem;
+  border-radius: 9999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.btn-color-variant-chip:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.btn-color-variant-chip.active {
+  border-color: var(--color-primary);
+  background-color: #fff1f2;
+  color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(124, 18, 40, 0.15);
+  font-weight: 700;
+}
+
+.btn-color-variant-chip.active::after {
+  content: '✓';
+  font-size: 0.72rem;
+  font-weight: 800;
+  margin-left: 0.15rem;
+}
+
+.color-swatch-circle {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  flex-shrink: 0;
+}
+
+.color-swatch-circle.is-light {
+  border-color: #94a3b8;
+}
+
+.detail-color-selection-tip {
+  margin: 0.6rem 0 0 0;
+  font-size: 0.76rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.badge-colors-count {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(4px);
+  color: #f8fafc;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  z-index: 2;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
 
 
 
