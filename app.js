@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MAHADEV SAREE COLLECTION - PUBLIC CATALOG SCRIPT (app.js)
+ * SHIVALAY SAREE COLLECTION - PUBLIC CATALOG SCRIPT (app.js)
  * ==============================================================================
  * Connects to Supabase Database (or demo fallback if unconfigured):
  * - Hash routing (#/ and #/saree/:id) with scroll preservation

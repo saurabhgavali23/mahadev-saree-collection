@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * MAHADEV SAREE COLLECTION - INTELLIGENT SAREE TEXT PARSER
+ * SHIVALAY SAREE COLLECTION - INTELLIGENT SAREE TEXT PARSER
  * ============================================================================
  * Pure JavaScript • Zero Dependencies • 100% Offline
  *
