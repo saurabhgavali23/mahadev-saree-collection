@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MAHADEV SAREE COLLECTION - ADMIN PANEL SCRIPT (admin.js)
+ * SHIVALAY SAREE COLLECTION - ADMIN PANEL SCRIPT (admin.js)
  * ==============================================================================
  * Complete admin dashboard logic:
  * - Supabase Authentication (login, logout, session persistence across refresh)

@@ -1,5 +1,5 @@
 -- ==============================================================================
--- MAHADEV SAREE COLLECTION - SUPABASE DATABASE SETUP SCRIPT (WITH VIDEO SUPPORT)
+-- SHIVALAY SAREE COLLECTION - SUPABASE DATABASE SETUP SCRIPT (WITH VIDEO SUPPORT)
 -- ==============================================================================
 -- Run this complete script in the Supabase SQL Editor:
 -- Supabase Dashboard -> Your Project -> SQL Editor -> New Query -> Run

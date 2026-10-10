@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * MAHADEV SAREE COLLECTION - CENTRAL CONFIGURATION FILE
+ * SHIVALAY SAREE COLLECTION - CENTRAL CONFIGURATION FILE
  * ==============================================================================
  * Edit this file to add your Supabase credentials, WhatsApp number, shop details,
  * and text sections.
@@ -30,8 +30,9 @@ const CONFIG = {
   // ----------------------------------------------------------------------------
   // 2. SHOP BRANDING & CONTACT
   // ----------------------------------------------------------------------------
-  SHOP_NAME: "Mahadev Saree Collection",
+  SHOP_NAME: "Shivalay Saree Collection",
   SHOP_TAGLINE: "Pure Elegance in Every Weave • 100% Online Saree Boutique",
+  SITE_URL: "https://shivalaycollection.online",
 
   // WhatsApp number in international format without '+' or spaces.
   // Format for India: 91 followed by 10-digit phone number -> "919876543210"
@@ -87,9 +88,9 @@ const CONFIG = {
   // 4. ABOUT US SECTION
   // ----------------------------------------------------------------------------
   ABOUT: {
-    TITLE: "About Mahadev Saree Collection",
+    TITLE: "About Shivalay Saree Collection",
     SUBTITLE: "100% Online Saree Boutique • Direct from Master Weavers to Your Doorstep",
-    DESCRIPTION_P1: "Welcome to Mahadev Saree Collection, your trusted online destination for authentic Indian handlooms, regal bridal silks, and contemporary festive wear. We sell exclusively online with no physical retail shops or middleman overheads.",
+    DESCRIPTION_P1: "Welcome to Shivalay Saree Collection, your trusted online destination for authentic Indian handlooms, regal bridal silks, and contemporary festive wear. We sell exclusively online with no physical retail shops or middleman overheads.",
     DESCRIPTION_P2: "By operating purely online, we keep our prices direct and transparent, passing maximum savings to you without showroom markups. We also offer personal WhatsApp video consultations so you can experience the exact color, zari luster, and drape before placing your order.",
     HIGHLIGHTS: [
       { icon: "🌐", title: "100% Online Boutique", desc: "No physical store overheads — authentic direct-weaver pricing" },
@@ -147,10 +148,9 @@ const CONFIG = {
   // ----------------------------------------------------------------------------
   FOOTER: {
     ADDRESS: "100% Online Store • Pan-India Courier Delivery",
-    PHONE: "+91 98765 43210",
-    EMAIL: "orders@mahadevsaree.com",
+    PHONE: "+91 81496 77704",
     HOURS: "Online Support: Monday to Saturday: 10:00 AM – 8:30 PM (IST)",
-    COPYRIGHT: "© 2026 Mahadev Saree Collection. All rights reserved."
+    COPYRIGHT: "© 2026 Shivalay Saree Collection. All rights reserved."
   },
 
   // ----------------------------------------------------------------------------
