@@ -365,6 +365,88 @@
   </footer>
 
   <!-- =========================================================================
+       ORDER DELIVERY ADDRESS MODAL
+       ========================================================================= -->
+  <div id="order-address-modal" class="order-address-modal" role="dialog" aria-modal="true" aria-labelledby="address-modal-title" style="display: none;">
+    <div class="address-modal-backdrop" id="address-modal-backdrop"></div>
+    <div class="address-modal-sheet">
+      <div class="address-modal-header">
+        <div class="address-modal-title-wrap">
+          <span class="address-modal-icon">📦</span>
+          <div>
+            <h3 id="address-modal-title" class="address-modal-title">Delivery Address</h3>
+            <p class="address-modal-subtitle">Enter your shipping details before placing the order on WhatsApp</p>
+          </div>
+        </div>
+        <button type="button" id="btn-close-address-modal" class="address-modal-close-btn" aria-label="Close address modal">&times;</button>
+      </div>
+
+      <!-- Saree Order Preview Card inside modal -->
+      <div class="address-order-summary" id="address-order-summary">
+        <!-- Injected dynamically in app.js -->
+      </div>
+
+      <form id="order-address-form" class="address-modal-form" novalidate>
+        <div class="form-row-2col">
+          <div class="form-group">
+            <label for="addr-name" class="form-label">Full Name <span class="required-star">*</span></label>
+            <input type="text" id="addr-name" class="form-input" placeholder="e.g. Pooja Sharma" required autocomplete="name">
+            <span class="field-error-msg" id="err-addr-name"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="addr-phone" class="form-label">WhatsApp / Contact Number <span class="required-star">*</span></label>
+            <input type="tel" id="addr-phone" class="form-input" placeholder="10-digit mobile number" maxlength="10" required autocomplete="tel">
+            <span class="field-error-msg" id="err-addr-phone"></span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="addr-line" class="form-label">Full Address (House / Flat / Street / Landmark) <span class="required-star">*</span></label>
+          <textarea id="addr-line" class="form-textarea" rows="2" placeholder="e.g. Flat 402, Sunshine Heights, MG Road, near Apollo Pharmacy" required autocomplete="street-address"></textarea>
+          <span class="field-error-msg" id="err-addr-line"></span>
+        </div>
+
+        <div class="form-row-3col">
+          <div class="form-group">
+            <label for="addr-pincode" class="form-label">PIN Code <span class="required-star">*</span></label>
+            <input type="text" id="addr-pincode" class="form-input" placeholder="6-digit PIN" maxlength="6" inputmode="numeric" required autocomplete="postal-code">
+            <span class="field-error-msg" id="err-addr-pincode"></span>
+            <span class="pincode-lookup-hint" id="pincode-lookup-hint"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="addr-city" class="form-label">City / District <span class="required-star">*</span></label>
+            <input type="text" id="addr-city" class="form-input" placeholder="e.g. Pune" required autocomplete="address-level2">
+            <span class="field-error-msg" id="err-addr-city"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="addr-state" class="form-label">State <span class="required-star">*</span></label>
+            <input type="text" id="addr-state" class="form-input" placeholder="e.g. Maharashtra" required autocomplete="address-level1">
+            <span class="field-error-msg" id="err-addr-state"></span>
+          </div>
+        </div>
+
+        <div class="address-modal-footer">
+          <div class="address-security-note">
+            <span>🛡️ Pan-India Insured Delivery • Order confirmed directly with store owner</span>
+          </div>
+          <div class="address-modal-actions">
+            <button type="button" id="btn-cancel-address" class="btn-secondary-outline">Cancel</button>
+            <button type="submit" id="btn-submit-order-whatsapp" class="btn-whatsapp-confirm">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
+              </svg>
+              <span>Continue to WhatsApp &rarr;</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
        LIGHTBOX MODAL (Tap to zoom images)
        ========================================================================= -->
   <div id="lightbox-modal" class="lightbox-modal" role="dialog" aria-modal="true" aria-label="Image Zoom Preview">

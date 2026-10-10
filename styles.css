@@ -3286,6 +3286,348 @@ a:focus-visible {
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
+/* =============================================================================
+   ORDER DELIVERY ADDRESS MODAL
+   ============================================================================= */
+.order-address-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.order-address-modal.open {
+  opacity: 1;
+  visibility: visible;
+  display: flex;
+}
+
+.address-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(5px);
+}
+
+.address-modal-sheet {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  padding: 1.5rem;
+  transform: translateY(20px) scale(0.98);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.order-address-modal.open .address-modal-sheet {
+  transform: translateY(0) scale(1);
+}
+
+.address-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.15rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid #f1e9df;
+}
+
+.address-modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.address-modal-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.address-modal-title {
+  font-family: var(--font-heading, 'Playfair Display', serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-primary, #7c1228);
+  margin: 0;
+}
+
+.address-modal-subtitle {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 0.2rem 0 0 0;
+}
+
+.address-modal-close-btn {
+  background: #f1f5f9;
+  border: none;
+  font-size: 1.5rem;
+  color: #64748b;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.address-modal-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Saree Order Summary Inside Modal */
+.address-order-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 0.9rem;
+  background-color: #fdfaf6;
+  border: 1px solid #ebdcd0;
+  border-radius: var(--radius-md, 10px);
+  margin-bottom: 1.15rem;
+}
+
+.address-summary-thumb {
+  width: 52px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+}
+
+.address-summary-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.address-summary-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.25rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.address-summary-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.address-summary-color-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #ffffff;
+  padding: 0.15rem 0.45rem;
+  border-radius: 9999px;
+  border: 1px solid #e2d4c0;
+  font-weight: 600;
+  color: #334155;
+}
+
+.address-summary-price {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-primary, #7c1228);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.address-summary-shipping {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: #059669;
+}
+
+/* Modal Form Fields */
+.address-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+.form-row-3col {
+  display: grid;
+  grid-template-columns: 1.1fr 1.2fr 1.2fr;
+  gap: 0.75rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.35rem;
+}
+
+.required-star {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: var(--radius-sm, 8px);
+  font-family: inherit;
+  font-size: 0.86rem;
+  color: #0f172a;
+  background-color: #f8fafc;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary, #7c1228);
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(124, 18, 40, 0.12);
+}
+
+.form-input.is-invalid,
+.form-textarea.is-invalid {
+  border-color: #dc2626;
+  background-color: #fff5f5;
+}
+
+.field-error-msg {
+  display: none;
+  font-size: 0.72rem;
+  color: #dc2626;
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+
+.field-error-msg.visible {
+  display: block;
+}
+
+.pincode-lookup-hint {
+  font-size: 0.72rem;
+  color: #0284c7;
+  display: block;
+  margin-top: 0.2rem;
+  min-height: 1rem;
+}
+
+/* Footer & Actions */
+.address-modal-footer {
+  margin-top: 0.75rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid #f1e9df;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.address-security-note {
+  font-size: 0.73rem;
+  color: #64748b;
+  text-align: center;
+}
+
+.address-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.btn-whatsapp-confirm {
+  background-color: #25d366;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 0.75rem 1.35rem;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+  border: none;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+}
+
+.btn-whatsapp-confirm:hover {
+  background-color: #1ebd5a;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 211, 102, 0.45);
+}
+
+.btn-secondary-outline {
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-weight: 600;
+  padding: 0.75rem 1.15rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary-outline:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+@media (max-width: 640px) {
+  .form-row-2col,
+  .form-row-3col {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+  .address-modal-sheet {
+    padding: 1.15rem;
+    max-height: 94vh;
+  }
+  .address-modal-actions {
+    flex-direction: column-reverse;
+  }
+  .address-modal-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 
 
 
