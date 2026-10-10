@@ -136,6 +136,49 @@
             <!-- Hidden ID field for updates -->
             <input type="hidden" id="saree-edit-id" value="">
 
+            <!-- =============================================================
+                 PASTE SUPPLIER MESSAGE -> AUTO-FILL SECTION
+                 ============================================================= -->
+            <div class="autofill-box" id="autofill-box">
+              <div class="autofill-box-header">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="font-size: 1.15rem;">⚡</span>
+                  <div>
+                    <h3 class="autofill-box-title">Paste Supplier WhatsApp Message</h3>
+                    <p class="autofill-box-subtitle">Auto-extracts cost, fabric, patterns, dimensions &amp; generates title</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="autofill-textarea-wrap">
+                <textarea 
+                  id="input-supplier-text" 
+                  class="form-textarea autofill-textarea" 
+                  rows="3" 
+                  placeholder="Paste WhatsApp supplier message here, e.g.:&#10;AJRAKH pure Gajji bandhej Supar mirar wark saree mirar Work&#10;Price 1270+ Length-6.30 mtr with blouse Width-44 inches..."
+                ></textarea>
+              </div>
+
+              <div class="autofill-controls-row">
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                  <button type="button" id="btn-autofill-message" class="btn-primary btn-autofill-action">
+                    ⚡ Auto-fill Form
+                  </button>
+                  <button type="button" id="btn-clear-supplier-text" class="btn-secondary" style="font-size: 0.8rem; padding: 0.45rem 0.85rem;">
+                    Clear
+                  </button>
+                </div>
+
+                <label class="autofill-overwrite-toggle" title="When checked, existing field values will be replaced by parsed values">
+                  <input type="checkbox" id="chk-overwrite-existing">
+                  <span>Overwrite existing values</span>
+                </label>
+              </div>
+
+              <!-- Status Banner (Shows extraction summary / uncertain flags) -->
+              <div id="autofill-status-banner" class="autofill-status-banner" style="display: none;"></div>
+            </div>
+
             <!-- Photo Picker Area -->
             <div class="form-group">
               <label class="form-label">
@@ -243,44 +286,142 @@
               </div>
             </div>
 
-            <!-- Basic Details Grid -->
+            <!-- Basic Details: Title -->
+            <div class="form-group">
+              <label for="input-name" class="form-label">Saree Name / Title <span style="color: #ef4444;">*</span></label>
+              <input 
+                type="text" 
+                id="input-name" 
+                class="form-input" 
+                placeholder="e.g. Ajrakh Bandhej Mirror Work Gajji Silk Saree" 
+                required
+              >
+              <small class="field-autofill-hint" id="hint-name" style="display: none;"></small>
+            </div>
+
+            <!-- Pricing & Margin Calculator Card -->
+            <div class="pricing-calculator-box">
+              <div class="pricing-calc-header">
+                <span class="pricing-calc-title">💰 Pricing &amp; Margin Calculator</span>
+                <span class="pricing-calc-note">Cost price is <strong>100% private</strong> and never visible to customers</span>
+              </div>
+
+              <div class="form-grid-4">
+                <!-- Cost Price -->
+                <div class="form-group">
+                  <label for="input-cost-price" class="form-label">
+                    Cost Price (₹)
+                    <span class="badge-private-pill" title="Private field - saved securely in saree_private">🔒 Private</span>
+                  </label>
+                  <input 
+                    type="number" 
+                    id="input-cost-price" 
+                    class="form-input" 
+                    placeholder="e.g. 1270" 
+                    min="0" 
+                    step="any"
+                  >
+                  <!-- Alternative prices found if uncertain -->
+                  <div id="price-alternatives-wrap" class="price-alternatives-wrap" style="display: none;"></div>
+                </div>
+
+                <!-- Margin Control -->
+                <div class="form-group">
+                  <label class="form-label">Margin (Profit)</label>
+                  <div style="display: flex; gap: 0.35rem;">
+                    <select id="select-margin-type" class="form-select" style="width: 78px; flex-shrink: 0; padding: 0.45rem 0.3rem;">
+                      <option value="flat">₹ Flat</option>
+                      <option value="percent">% Pct</option>
+                    </select>
+                    <input 
+                      type="number" 
+                      id="input-margin-val" 
+                      class="form-input" 
+                      placeholder="300" 
+                      min="0" 
+                      step="any" 
+                      value="300"
+                    >
+                  </div>
+                </div>
+
+                <!-- Customer Selling Price -->
+                <div class="form-group">
+                  <label for="input-price" class="form-label">
+                    Selling Price (₹) <span style="color: #ef4444;">*</span>
+                  </label>
+                  <input 
+                    type="number" 
+                    id="input-price" 
+                    class="form-input" 
+                    placeholder="e.g. 1570" 
+                    min="1" 
+                    step="any" 
+                    required
+                  >
+                  <span id="margin-calc-preview" class="margin-preview-pill">Selling = Cost + Margin</span>
+                </div>
+
+                <!-- Shipping Charges -->
+                <div class="form-group">
+                  <label for="input-shipping" class="form-label">Shipping (in ₹)</label>
+                  <input 
+                    type="number" 
+                    id="input-shipping" 
+                    class="form-input" 
+                    placeholder="0 for Free" 
+                    min="0" 
+                    step="any" 
+                    value="0"
+                  >
+                  <small style="font-size: 0.72rem; color: #64748b; display: block; margin-top: 0.25rem;">0 = Free Delivery</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dimensions & Blouse Grid (Length, Width, Blouse) -->
             <div class="form-grid-3">
               <div class="form-group">
-                <label for="input-name" class="form-label">Saree Name / Title <span style="color: #ef4444;">*</span></label>
+                <label for="input-length" class="form-label">Saree Length (meters)</label>
+                <input 
+                  type="number" 
+                  id="input-length" 
+                  class="form-input" 
+                  placeholder="e.g. 6.30" 
+                  step="0.01" 
+                  min="0"
+                >
+                <small style="font-size: 0.72rem; color: #64748b;">Standard: 5.5m or 6.3m</small>
+              </div>
+
+              <div class="form-group">
+                <label for="input-width" class="form-label">Saree Width (inches)</label>
+                <input 
+                  type="number" 
+                  id="input-width" 
+                  class="form-input" 
+                  placeholder="e.g. 44" 
+                  step="0.5" 
+                  min="0"
+                >
+                <small style="font-size: 0.72rem; color: #64748b;">Standard: 44 inches</small>
+              </div>
+
+              <div class="form-group">
+                <label for="input-blouse" class="form-label">Blouse Piece</label>
                 <input 
                   type="text" 
-                  id="input-name" 
+                  id="input-blouse" 
                   class="form-input" 
-                  placeholder="e.g. Kanjivaram Pure Silk Saree with Gold Zari" 
-                  required
+                  list="blouse-suggestions-list" 
+                  placeholder="e.g. Yes, Running Unstitched"
                 >
-              </div>
-
-              <div class="form-group">
-                <label for="input-price" class="form-label">Price (in ₹) <span style="color: #ef4444;">*</span></label>
-                <input 
-                  type="number" 
-                  id="input-price" 
-                  class="form-input" 
-                  placeholder="e.g. 14500" 
-                  min="1" 
-                  step="any" 
-                  required
-                >
-              </div>
-
-              <div class="form-group">
-                <label for="input-shipping" class="form-label">Shipping Charges (in ₹)</label>
-                <input 
-                  type="number" 
-                  id="input-shipping" 
-                  class="form-input" 
-                  placeholder="0 for Free Delivery" 
-                  min="0" 
-                  step="any" 
-                  value="0"
-                >
-                <small style="font-size: 0.72rem; color: var(--color-text-muted); display: block; margin-top: 0.25rem;">0 = Free Delivery</small>
+                <datalist id="blouse-suggestions-list">
+                  <option value="Yes">Yes (With Blouse)</option>
+                  <option value="No">No (Without Blouse)</option>
+                  <option value="Running Unstitched">Running Unstitched</option>
+                  <option value="Contrast Unstitched">Contrast Unstitched</option>
+                </datalist>
               </div>
             </div>
 
@@ -293,7 +434,7 @@
                   id="input-fabric" 
                   class="form-input" 
                   list="fabric-suggestions-list" 
-                  placeholder="e.g. Pure Silk, Banarasi Silk"
+                  placeholder="e.g. Pure Gajji Silk, Banarasi Silk"
                 >
                 <datalist id="fabric-suggestions-list"></datalist>
               </div>
@@ -305,7 +446,7 @@
                   id="input-category" 
                   class="form-input" 
                   list="category-suggestions-list" 
-                  placeholder="e.g. Bridal, Festive"
+                  placeholder="e.g. Silk, Bridal, Festive"
                 >
                 <datalist id="category-suggestions-list"></datalist>
               </div>
@@ -319,16 +460,21 @@
               </div>
             </div>
 
-            <!-- Details: Color, Pattern, Border, Occasion -->
+            <!-- Details: Color (with photo chips) & Pattern -->
             <div class="form-grid-2">
               <div class="form-group">
                 <label for="input-color" class="form-label">Primary Color</label>
                 <input type="text" id="input-color" class="form-input" placeholder="e.g. Crimson Red, Emerald Green">
+                <!-- Color Chips from Photo Detection -->
+                <div id="color-suggestions-wrap" class="color-chips-row" style="display: none;">
+                  <span class="color-chips-label">🎨 From Photo:</span>
+                  <div id="color-chips-list" class="color-chips-list"></div>
+                </div>
               </div>
 
               <div class="form-group">
-                <label for="input-pattern" class="form-label">Pattern / Weave</label>
-                <input type="text" id="input-pattern" class="form-input" placeholder="e.g. Floral Jaal, Kadwa Buti">
+                <label for="input-pattern" class="form-label">Pattern / Work</label>
+                <input type="text" id="input-pattern" class="form-input" placeholder="e.g. Ajrakh, Bandhej, Mirror Work">
               </div>
             </div>
 
@@ -656,6 +802,7 @@
 
   <!-- Scripts -->
   <script src="config.js"></script>
+  <script src="parser.js"></script>
   <script src="admin.js" defer></script>
 </body>
 </html>
