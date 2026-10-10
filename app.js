@@ -29,6 +29,9 @@
     activeFabric: 'all',
     activeColor: 'all',
     selectedSareeColor: '',
+    currentOrderSaree: null,
+    currentOrderColor: '',
+    currentOrderPhoto: '',
     maxPrice: Infinity,
     priceMin: 0,
     priceMax: 50000,
@@ -95,6 +98,21 @@
     dom.lightboxClose = document.getElementById('lightbox-close');
     dom.toastNotice = document.getElementById('toast-notice');
     dom.toastMessage = document.getElementById('toast-message');
+
+    // Order Delivery Address Modal
+    dom.orderAddressModal = document.getElementById('order-address-modal');
+    dom.addressModalBackdrop = document.getElementById('address-modal-backdrop');
+    dom.btnCloseAddressModal = document.getElementById('btn-close-address-modal');
+    dom.btnCancelAddress = document.getElementById('btn-cancel-address');
+    dom.orderAddressForm = document.getElementById('order-address-form');
+    dom.addressOrderSummary = document.getElementById('address-order-summary');
+    dom.addrName = document.getElementById('addr-name');
+    dom.addrPhone = document.getElementById('addr-phone');
+    dom.addrLine = document.getElementById('addr-line');
+    dom.addrPincode = document.getElementById('addr-pincode');
+    dom.addrCity = document.getElementById('addr-city');
+    dom.addrState = document.getElementById('addr-state');
+    dom.pincodeLookupHint = document.getElementById('pincode-lookup-hint');
 
     // Footer Refresh
     dom.btnForceRefresh = document.getElementById('btn-force-refresh');
@@ -189,7 +207,7 @@
     return '#94a3b8';
   }
 
-  function buildSareeOrderMessage(saree, selectedColor, selectedPhotoUrl) {
+  function buildSareeOrderMessage(saree, selectedColor, selectedPhotoUrl, customerAddress) {
     const currentUrl = window.location.href;
     const shipping = getShippingInfo(saree);
     const totalAmount = saree.price + shipping.amount;
@@ -205,12 +223,270 @@
 
     let msg = `Hello ${CONFIG.SHOP_NAME},\n\nI would like to order this saree:\n*Saree ID:* #${saree.id}\n*Name:* ${saree.name}\n*Selected Color:* ${color}\n*Price:* ${formatPrice(saree.price)}\n${shippingLine}\n${totalLine}\n*Fabric:* ${saree.fabric}`;
 
+    if (customerAddress) {
+      msg += `\n\n*Delivery Address:*\n*Name:* ${customerAddress.name}\n*Contact:* ${customerAddress.phone}\n*Address:* ${customerAddress.address}\n*City & State:* ${customerAddress.city}, ${customerAddress.state}\n*PIN Code:* ${customerAddress.pincode}`;
+    }
+
     if (photo && !photo.startsWith('data:image/svg+xml')) {
       msg += `\n\n*Saree Photo:*\n${photo}`;
     }
 
     msg += `\n\n*Catalog Link:*\n${currentUrl}\n\nPlease confirm availability and payment details.`;
     return msg;
+  }
+
+  // ----------------------------------------------------------------------------
+  // ORDER DELIVERY ADDRESS MODAL LOGIC
+  // ----------------------------------------------------------------------------
+  const CUSTOMER_ADDR_KEY = 'msc_customer_delivery_address';
+
+  function openAddressModal(saree, selectedColor, selectedPhotoUrl) {
+    if (!dom.orderAddressModal) return;
+
+    state.currentOrderSaree = saree;
+    state.currentOrderColor = selectedColor || state.selectedSareeColor || saree.color || 'Multicolor';
+    state.currentOrderPhoto = selectedPhotoUrl || saree.mainImage || (saree.images && saree.images[0]) || '';
+
+    // Render Saree Order Summary inside modal
+    if (dom.addressOrderSummary) {
+      const shipping = getShippingInfo(saree);
+      const totalAmount = saree.price + shipping.amount;
+      const displayPhoto = state.currentOrderPhoto || saree.mainImage || PLACEHOLDER_IMG;
+      const displayColor = state.currentOrderColor;
+
+      dom.addressOrderSummary.innerHTML = `
+        <img src="${escapeHtml(displayPhoto)}" alt="${escapeHtml(saree.name)}" class="address-summary-thumb" onerror="this.src='${PLACEHOLDER_IMG}'">
+        <div class="address-summary-details">
+          <h4 class="address-summary-name">${escapeHtml(saree.name)}</h4>
+          <div class="address-summary-meta">
+            <span class="address-summary-color-pill">
+              <span class="color-swatch-circle" style="background: ${getSareeColorSwatch(displayColor)};"></span>
+              ${escapeHtml(displayColor)}
+            </span>
+            <span>• ID: #${escapeHtml(saree.id)}</span>
+          </div>
+        </div>
+        <div class="address-summary-price">
+          <div>${formatPrice(totalAmount)}</div>
+          <span class="address-summary-shipping">${escapeHtml(shipping.badgeText)}</span>
+        </div>
+      `;
+    }
+
+    // Load saved address from localStorage
+    let saved = null;
+    try {
+      saved = JSON.parse(localStorage.getItem(CUSTOMER_ADDR_KEY) || 'null');
+    } catch (e) {}
+
+    if (saved) {
+      if (dom.addrName && !dom.addrName.value) dom.addrName.value = saved.name || '';
+      if (dom.addrPhone && !dom.addrPhone.value) dom.addrPhone.value = saved.phone || '';
+      if (dom.addrLine && !dom.addrLine.value) dom.addrLine.value = saved.address || '';
+      if (dom.addrPincode && !dom.addrPincode.value) dom.addrPincode.value = saved.pincode || '';
+      if (dom.addrCity && !dom.addrCity.value) dom.addrCity.value = saved.city || '';
+      if (dom.addrState && !dom.addrState.value) dom.addrState.value = saved.state || '';
+    }
+
+    clearAddressErrors();
+
+    dom.orderAddressModal.style.display = 'flex';
+    requestAnimationFrame(() => {
+      dom.orderAddressModal.classList.add('open');
+    });
+    document.body.style.overflow = 'hidden';
+
+    // Focus on first empty field or name
+    setTimeout(() => {
+      if (dom.addrName && !dom.addrName.value) {
+        dom.addrName.focus();
+      } else if (dom.addrPincode && !dom.addrPincode.value) {
+        dom.addrPincode.focus();
+      } else if (dom.addrLine && !dom.addrLine.value) {
+        dom.addrLine.focus();
+      }
+    }, 100);
+  }
+
+  function closeAddressModal() {
+    if (!dom.orderAddressModal) return;
+    dom.orderAddressModal.classList.remove('open');
+    document.body.style.overflow = '';
+    setTimeout(() => {
+      if (dom.orderAddressModal && !dom.orderAddressModal.classList.contains('open')) {
+        dom.orderAddressModal.style.display = 'none';
+      }
+    }, 250);
+  }
+
+  let pincodeDebounce = null;
+  function handlePincodeInput() {
+    if (!dom.addrPincode) return;
+    // Keep numbers only, max 6 digits
+    dom.addrPincode.value = dom.addrPincode.value.replace(/\D/g, '').slice(0, 6);
+    const pin = dom.addrPincode.value;
+
+    if (dom.pincodeLookupHint) dom.pincodeLookupHint.textContent = '';
+    clearTimeout(pincodeDebounce);
+
+    if (pin.length === 6 && /^[1-9][0-9]{5}$/.test(pin)) {
+      if (dom.pincodeLookupHint) {
+        dom.pincodeLookupHint.textContent = '🔍 Checking pincode...';
+        dom.pincodeLookupHint.style.color = '#0284c7';
+      }
+      pincodeDebounce = setTimeout(async () => {
+        try {
+          const resp = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+          if (!resp.ok) return;
+          const data = await resp.json();
+          if (Array.isArray(data) && data[0] && data[0].Status === 'Success' && Array.isArray(data[0].PostOffice) && data[0].PostOffice.length > 0) {
+            const po = data[0].PostOffice[0];
+            const city = po.District || po.Division || po.Block || '';
+            const stateName = po.State || '';
+            if (dom.addrCity && (!dom.addrCity.value || dom.addrCity.dataset.autofilled === 'true')) {
+              dom.addrCity.value = city;
+              dom.addrCity.dataset.autofilled = 'true';
+              dom.addrCity.classList.remove('is-invalid');
+              const errCity = document.getElementById('err-addr-city');
+              if (errCity) errCity.classList.remove('visible');
+            }
+            if (dom.addrState && (!dom.addrState.value || dom.addrState.dataset.autofilled === 'true')) {
+              dom.addrState.value = stateName;
+              dom.addrState.dataset.autofilled = 'true';
+              dom.addrState.classList.remove('is-invalid');
+              const errState = document.getElementById('err-addr-state');
+              if (errState) errState.classList.remove('visible');
+            }
+            if (dom.pincodeLookupHint) {
+              dom.pincodeLookupHint.textContent = `✓ ${city}, ${stateName}`;
+              dom.pincodeLookupHint.style.color = '#059669';
+            }
+          } else {
+            if (dom.pincodeLookupHint) dom.pincodeLookupHint.textContent = '';
+          }
+        } catch (err) {
+          if (dom.pincodeLookupHint) dom.pincodeLookupHint.textContent = '';
+        }
+      }, 350);
+    }
+  }
+
+  function validateAddressForm() {
+    clearAddressErrors();
+    let isValid = true;
+    let firstInvalidEl = null;
+
+    const name = (dom.addrName ? dom.addrName.value : '').trim();
+    const phone = (dom.addrPhone ? dom.addrPhone.value : '').trim().replace(/\D/g, '');
+    const line = (dom.addrLine ? dom.addrLine.value : '').trim();
+    const pincode = (dom.addrPincode ? dom.addrPincode.value : '').trim();
+    const city = (dom.addrCity ? dom.addrCity.value : '').trim();
+    const stateName = (dom.addrState ? dom.addrState.value : '').trim();
+
+    // Full Name
+    if (!name || name.length < 2) {
+      setFieldError('err-addr-name', 'Please enter your full name', dom.addrName);
+      isValid = false;
+      if (!firstInvalidEl) firstInvalidEl = dom.addrName;
+    }
+
+    // Phone (10 digits)
+    if (!phone || phone.length < 10) {
+      setFieldError('err-addr-phone', 'Please enter a valid 10-digit mobile number', dom.addrPhone);
+      isValid = false;
+      if (!firstInvalidEl) firstInvalidEl = dom.addrPhone;
+    }
+
+    // Full Address
+    if (!line || line.length < 5) {
+      setFieldError('err-addr-line', 'Please enter your complete address (house no, street, landmark)', dom.addrLine);
+      isValid = false;
+      if (!firstInvalidEl) firstInvalidEl = dom.addrLine;
+    }
+
+    // PIN Code (Required, strictly 6 digits, Indian pincode format)
+    if (!pincode) {
+      setFieldError('err-addr-pincode', 'PIN code is required to place your order', dom.addrPincode);
+      isValid = false;
+      if (!firstInvalidEl) firstInvalidEl = dom.addrPincode;
+    } else if (!/^[1-9][0-9]{5}$/.test(pincode)) {
+      setFieldError('err-addr-pincode', 'Please enter a valid 6-digit PIN code', dom.addrPincode);
+      isValid = false;
+      if (!firstInvalidEl) firstInvalidEl = dom.addrPincode;
+    }
+
+    // City
+    if (!city) {
+      setFieldError('err-addr-city', 'City / District is required', dom.addrCity);
+      isValid = false;
+      if (!firstInvalidEl) firstInvalidEl = dom.addrCity;
+    }
+
+    // State
+    if (!stateName) {
+      setFieldError('err-addr-state', 'State is required', dom.addrState);
+      isValid = false;
+      if (!firstInvalidEl) firstInvalidEl = dom.addrState;
+    }
+
+    if (firstInvalidEl) {
+      firstInvalidEl.focus();
+    }
+
+    if (!isValid) return null;
+
+    return {
+      name,
+      phone,
+      address: line,
+      pincode,
+      city,
+      state: stateName
+    };
+  }
+
+  function setFieldError(errId, msg, inputEl) {
+    const el = document.getElementById(errId);
+    if (el) {
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+    if (inputEl) {
+      inputEl.classList.add('is-invalid');
+    }
+  }
+
+  function clearAddressErrors() {
+    document.querySelectorAll('.field-error-msg').forEach(el => {
+      el.textContent = '';
+      el.classList.remove('visible');
+    });
+    document.querySelectorAll('.form-input.is-invalid, .form-textarea.is-invalid').forEach(el => {
+      el.classList.remove('is-invalid');
+    });
+  }
+
+  function handleAddressSubmit(e) {
+    e.preventDefault();
+    const address = validateAddressForm();
+    if (!address) return;
+
+    // Save to localStorage for convenience
+    try {
+      localStorage.setItem(CUSTOMER_ADDR_KEY, JSON.stringify(address));
+    } catch (err) {}
+
+    const saree = state.currentOrderSaree;
+    if (!saree) return;
+
+    const color = state.currentOrderColor || state.selectedSareeColor || saree.color || 'Multicolor';
+    const photo = state.currentOrderPhoto || (saree.images && saree.images[0]) || saree.mainImage || '';
+
+    const orderMsg = buildSareeOrderMessage(saree, color, photo, address);
+    const waUrl = buildWhatsAppUrl(orderMsg);
+
+    closeAddressModal();
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
   }
 
 
@@ -851,12 +1127,12 @@
     let actionButtonsHtml = '';
     if (!saree.isSold) {
       actionButtonsHtml = `
-        <a href="${orderWaUrl}" id="btn-whatsapp-order-link" target="_blank" rel="noopener noreferrer" class="btn-whatsapp-order">
+        <button type="button" id="btn-whatsapp-order-link" class="btn-whatsapp-order" aria-label="Order on WhatsApp">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
             <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
           </svg>
           <span>Order on WhatsApp</span>
-        </a>
+        </button>
       `;
     } else {
       actionButtonsHtml = `
@@ -1027,11 +1303,12 @@
       <div class="detail-reviews-wrapper" id="detail-reviews-container"></div>
     `;
 
-    function updateWhatsAppOrderUrl() {
-      const waBtn = document.getElementById('btn-whatsapp-order-link');
-      if (!waBtn) return;
-      const updatedMsg = buildSareeOrderMessage(saree, state.selectedSareeColor, selectedPhotoUrl);
-      waBtn.href = buildWhatsAppUrl(updatedMsg);
+    const waBtn = document.getElementById('btn-whatsapp-order-link');
+    if (waBtn) {
+      waBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openAddressModal(saree, state.selectedSareeColor, selectedPhotoUrl);
+      });
     }
 
     const colorChips = dom.sareeDetailContent.querySelectorAll('.btn-color-variant-chip');
@@ -1040,6 +1317,7 @@
         const chosen = chip.getAttribute('data-color');
         if (!chosen) return;
         state.selectedSareeColor = chosen;
+        state.currentOrderColor = chosen;
 
         colorChips.forEach(c => {
           const isActive = c === chip;
@@ -1056,21 +1334,20 @@
         const chipIdx = parseInt(chip.getAttribute('data-color-idx'), 10);
         if (!isNaN(chipIdx) && chipIdx < allImages.length) {
           selectedPhotoUrl = allImages[chipIdx];
+          state.currentOrderPhoto = allImages[chipIdx];
           const slides = dom.sareeDetailContent.querySelectorAll('.gallery-slide');
           const targetSlideIdx = saree.video_url ? chipIdx + 1 : chipIdx;
           if (slides[targetSlideIdx]) {
             slides[targetSlideIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
           }
         }
-
-        updateWhatsAppOrderUrl();
       });
     });
 
     attachGalleryEvents((slideIdx, imgUrl) => {
       if (imgUrl) {
         selectedPhotoUrl = imgUrl;
-        updateWhatsAppOrderUrl();
+        state.currentOrderPhoto = imgUrl;
       }
     });
 
@@ -1668,6 +1945,27 @@
       });
     }
 
+    // Order Delivery Address Modal Listeners
+    if (dom.btnCloseAddressModal) dom.btnCloseAddressModal.addEventListener('click', closeAddressModal);
+    if (dom.btnCancelAddress) dom.btnCancelAddress.addEventListener('click', closeAddressModal);
+    if (dom.addressModalBackdrop) dom.addressModalBackdrop.addEventListener('click', closeAddressModal);
+    if (dom.orderAddressForm) dom.orderAddressForm.addEventListener('submit', handleAddressSubmit);
+    if (dom.addrPincode) dom.addrPincode.addEventListener('input', handlePincodeInput);
+
+    // Clear input errors when user types
+    ['addrName', 'addrPhone', 'addrLine', 'addrPincode', 'addrCity', 'addrState'].forEach(fieldKey => {
+      if (dom[fieldKey]) {
+        dom[fieldKey].addEventListener('input', () => {
+          dom[fieldKey].classList.remove('is-invalid');
+          const errEl = document.getElementById(`err-${dom[fieldKey].id}`);
+          if (errEl) {
+            errEl.textContent = '';
+            errEl.classList.remove('visible');
+          }
+        });
+      }
+    });
+
     // Lightbox dismissal
     if (dom.lightboxClose) dom.lightboxClose.addEventListener('click', closeLightbox);
     if (dom.lightboxModal) {
@@ -1679,8 +1977,12 @@
     }
 
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && dom.lightboxModal && dom.lightboxModal.classList.contains('open')) {
-        closeLightbox();
+      if (e.key === 'Escape') {
+        if (dom.orderAddressModal && dom.orderAddressModal.classList.contains('open')) {
+          closeAddressModal();
+        } else if (dom.lightboxModal && dom.lightboxModal.classList.contains('open')) {
+          closeLightbox();
+        }
       }
     });
   }
