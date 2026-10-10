@@ -106,6 +106,9 @@
         <button type="button" id="tab-list-btn" class="admin-tab-btn">
           📋 Manage Sarees (<span id="total-sarees-count">0</span>)
         </button>
+        <button type="button" id="tab-reviews-btn" class="admin-tab-btn">
+          ⭐ Manage Reviews (<span id="total-reviews-count">0</span>)
+        </button>
         <button type="button" id="tab-cleanup-btn" class="admin-tab-btn">
           🧹 Storage Cleanup (<span id="orphan-tab-badge">Scan</span>)
         </button>
@@ -241,7 +244,7 @@
             </div>
 
             <!-- Basic Details Grid -->
-            <div class="form-grid-2">
+            <div class="form-grid-3">
               <div class="form-group">
                 <label for="input-name" class="form-label">Saree Name / Title <span style="color: #ef4444;">*</span></label>
                 <input 
@@ -264,6 +267,20 @@
                   step="any" 
                   required
                 >
+              </div>
+
+              <div class="form-group">
+                <label for="input-shipping" class="form-label">Shipping Charges (in ₹)</label>
+                <input 
+                  type="number" 
+                  id="input-shipping" 
+                  class="form-input" 
+                  placeholder="0 for Free Delivery" 
+                  min="0" 
+                  step="any" 
+                  value="0"
+                >
+                <small style="font-size: 0.72rem; color: var(--color-text-muted); display: block; margin-top: 0.25rem;">0 = Free Delivery</small>
               </div>
             </div>
 
@@ -410,7 +427,153 @@
       </section>
 
       <!-- -------------------------------------------------------------------
-           TAB 3: STORAGE CLEANUP (ORPHAN FILES)
+           TAB 3: MANAGE REVIEWS (ADMIN-ONLY)
+           ------------------------------------------------------------------- -->
+      <section id="tab-reviews-content" style="display: none;">
+        <div class="admin-card">
+          
+          <div class="admin-card-header">
+            <div>
+              <h2 class="admin-card-title">Customer Reviews & Drape Looks</h2>
+              <p style="font-size: 0.82rem; color: #64748b;">
+                Add and manage verified customer reviews, photos, videos, and comments for any saree
+              </p>
+            </div>
+          </div>
+
+          <!-- Saree Selector for Reviews -->
+          <div class="form-group" style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 1.5rem;">
+            <label for="review-saree-select" class="form-label" style="font-weight: 700; color: #1e293b;">
+              1. Choose Saree to Manage Reviews <span style="color: #ef4444;">*</span>
+            </label>
+            <select id="review-saree-select" class="form-select" style="font-size: 0.95rem;">
+              <option value="">-- Select a saree from catalog --</option>
+            </select>
+            <small style="font-size: 0.72rem; color: #64748b; margin-top: 0.25rem; display: block;">
+              Select a saree above to view its existing reviews or add a new verified customer review.
+            </small>
+          </div>
+
+          <!-- Review Form Container -->
+          <div id="review-form-wrap" style="display: none;">
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+              <h3 id="review-form-title" style="font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem;">
+                Add Customer Review for Selected Saree
+              </h3>
+
+              <form id="saree-review-form">
+                <input type="hidden" id="review-edit-id" value="">
+
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label for="input-review-name" class="form-label">
+                      Customer / Reviewer Name <span style="color: #ef4444;">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      id="input-review-name" 
+                      class="form-input" 
+                      placeholder="e.g. Pooja Sharma, Pune" 
+                      required
+                    >
+                  </div>
+
+                  <div class="form-group">
+                    <label for="input-review-rating" class="form-label">
+                      Rating <span style="color: #ef4444;">*</span>
+                    </label>
+                    <select id="input-review-rating" class="form-select">
+                      <option value="5">⭐⭐⭐⭐⭐ (5 Stars - Excellent)</option>
+                      <option value="4">⭐⭐⭐⭐ (4 Stars - Very Good)</option>
+                      <option value="3">⭐⭐⭐ (3 Stars - Good)</option>
+                      <option value="2">⭐⭐ (2 Stars - Fair)</option>
+                      <option value="1">⭐ (1 Star - Poor)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="input-review-comment" class="form-label">
+                    Review / Comment <span style="color: #ef4444;">*</span>
+                  </label>
+                  <textarea 
+                    id="input-review-comment" 
+                    class="form-textarea" 
+                    rows="3" 
+                    placeholder="e.g. The pure zari work is breathtaking! Looked magnificent at the reception..."
+                    required
+                  ></textarea>
+                </div>
+
+                <!-- Review Photos Upload / Links -->
+                <div class="form-group">
+                  <label class="form-label">
+                    Customer Photos <small style="color: #64748b; font-weight: normal;">(Optional • Photos wearing/unboxing the saree)</small>
+                  </label>
+                  <input type="file" id="review-photo-file-input" accept="image/jpeg,image/png,image/webp" multiple style="display: none;">
+                  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                    <button type="button" id="btn-choose-review-photos" class="btn-primary" style="font-size: 0.82rem; padding: 0.45rem 0.9rem;">
+                      📸 Upload Photos
+                    </button>
+                    <input 
+                      type="url" 
+                      id="input-review-photo-url" 
+                      class="form-input" 
+                      placeholder="Or paste photo image URL..." 
+                      style="flex: 1; min-width: 220px;"
+                    >
+                    <button type="button" id="btn-add-review-photo-url" class="btn-secondary" style="font-size: 0.82rem; padding: 0.45rem 0.9rem;">
+                      Add URL
+                    </button>
+                  </div>
+                  <div id="review-photos-preview-grid" class="photo-preview-grid" style="margin-top: 0.75rem;"></div>
+                </div>
+
+                <!-- Review Video -->
+                <div class="form-group">
+                  <label class="form-label">
+                    Customer Drape Video <small style="color: #64748b; font-weight: normal;">(Optional • YouTube or MP4 link)</small>
+                  </label>
+                  <input 
+                    type="url" 
+                    id="input-review-video-url" 
+                    class="form-input" 
+                    placeholder="e.g. https://www.youtube.com/watch?v=... or direct MP4 link"
+                  >
+                  <small style="font-size: 0.72rem; color: #64748b; display: block; margin-top: 0.25rem;">
+                    Paste a YouTube link (youtube.com / youtu.be) or direct HTTPS video link.
+                  </small>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem; align-items: center;">
+                  <button type="submit" id="btn-save-review" class="btn-primary" style="min-width: 170px;">
+                    💾 Save Review
+                  </button>
+                  <button type="button" id="btn-cancel-review-edit" class="btn-secondary" style="display: none;">
+                    Cancel Edit
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Existing reviews for selected saree -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b;">
+                  Reviews for Selected Saree (<span id="selected-saree-reviews-count">0</span>)
+                </h3>
+              </div>
+              <div id="selected-saree-reviews-list" class="admin-list-container">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- -------------------------------------------------------------------
+           TAB 4: STORAGE CLEANUP (ORPHAN FILES)
            ------------------------------------------------------------------- -->
       <section id="tab-cleanup-content" style="display: none;">
         <div class="admin-card">

@@ -34,7 +34,11 @@
     filterCategory: 'all',
     orphanFiles: null,         // null until first scan, then array of orphan file objects
     isScanningOrphans: false,
-    storageTotalFilesCount: 0
+    storageTotalFilesCount: 0,
+    allReviews: [],
+    selectedReviewSareeId: null,
+    currentReviewPhotos: [],
+    editingReviewId: null
   };
 
   const PLACEHOLDER_IMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='800' viewBox='0 0 600 800'%3E%3Crect fill='%23f4ede4' width='600' height='800'/%3E%3Ctext fill='%239c9389' font-family='sans-serif' font-size='24' font-weight='600' x='50%25' y='50%25' text-anchor='middle'%3ENo Photo%3C/text%3E%3C/svg%3E";
@@ -64,13 +68,36 @@
     // Tabs
     dom.tabFormBtn = document.getElementById('tab-form-btn');
     dom.tabListBtn = document.getElementById('tab-list-btn');
+    dom.tabReviewsBtn = document.getElementById('tab-reviews-btn');
     dom.tabCleanupBtn = document.getElementById('tab-cleanup-btn');
     dom.tabFormContent = document.getElementById('tab-form-content');
     dom.tabListContent = document.getElementById('tab-list-content');
+    dom.tabReviewsContent = document.getElementById('tab-reviews-content');
     dom.tabCleanupContent = document.getElementById('tab-cleanup-content');
     dom.totalSareesCount = document.getElementById('total-sarees-count');
+    dom.totalReviewsCount = document.getElementById('total-reviews-count');
     dom.orphanTabBadge = document.getElementById('orphan-tab-badge');
     dom.formTabLabel = document.getElementById('form-tab-label');
+
+    // Reviews DOM
+    dom.reviewSareeSelect = document.getElementById('review-saree-select');
+    dom.reviewFormWrap = document.getElementById('review-form-wrap');
+    dom.sareeReviewForm = document.getElementById('saree-review-form');
+    dom.reviewEditId = document.getElementById('review-edit-id');
+    dom.reviewFormTitle = document.getElementById('review-form-title');
+    dom.inputReviewName = document.getElementById('input-review-name');
+    dom.inputReviewRating = document.getElementById('input-review-rating');
+    dom.inputReviewComment = document.getElementById('input-review-comment');
+    dom.reviewPhotoFileInput = document.getElementById('review-photo-file-input');
+    dom.btnChooseReviewPhotos = document.getElementById('btn-choose-review-photos');
+    dom.inputReviewPhotoUrl = document.getElementById('input-review-photo-url');
+    dom.btnAddReviewPhotoUrl = document.getElementById('btn-add-review-photo-url');
+    dom.reviewPhotosPreviewGrid = document.getElementById('review-photos-preview-grid');
+    dom.inputReviewVideoUrl = document.getElementById('input-review-video-url');
+    dom.btnSaveReview = document.getElementById('btn-save-review');
+    dom.btnCancelReviewEdit = document.getElementById('btn-cancel-review-edit');
+    dom.selectedSareeReviewsCount = document.getElementById('selected-saree-reviews-count');
+    dom.selectedSareeReviewsList = document.getElementById('selected-saree-reviews-list');
 
     // Saree Form
     dom.sareeForm = document.getElementById('saree-form');
@@ -118,6 +145,7 @@
     // Form Fields
     dom.inputName = document.getElementById('input-name');
     dom.inputPrice = document.getElementById('input-price');
+    dom.inputShipping = document.getElementById('input-shipping');
     dom.inputFabric = document.getElementById('input-fabric');
     dom.inputCategory = document.getElementById('input-category');
     dom.inputStatus = document.getElementById('input-status');
@@ -820,6 +848,7 @@
 
     const name = dom.inputName.value.trim();
     const price = parseFloat(dom.inputPrice.value);
+    const shipping = dom.inputShipping ? (parseFloat(dom.inputShipping.value) || 0) : 0;
 
     if (!name) {
       showToast('Please enter a saree title.');
@@ -830,6 +859,12 @@
     if (isNaN(price) || price <= 0) {
       showToast('Please enter a valid price greater than zero.');
       dom.inputPrice.focus();
+      return;
+    }
+
+    if (isNaN(shipping) || shipping < 0) {
+      showToast('Please enter a valid shipping charge (0 for Free Delivery).');
+      if (dom.inputShipping) dom.inputShipping.focus();
       return;
     }
 
@@ -860,6 +895,7 @@
         occasion: dom.inputOccasion.value.trim() || 'Festive / Wedding',
         description: dom.inputDescription.value.trim(),
         price: price,
+        shipping_charges: shipping,
         status: dom.inputStatus.value,
         images: uploadedPhotos,
         video_url: videoUrl,
@@ -867,17 +903,40 @@
       };
 
       if (state.editingSareeId) {
-        const { error } = await state.supabaseClient
+        let { error } = await state.supabaseClient
           .from('sarees')
           .update(payload)
           .eq('id', state.editingSareeId);
 
+        // Safe retry if shipping_charges column has not been added to Supabase table yet
+        if (error && error.message && error.message.includes('shipping_charges')) {
+          console.warn('shipping_charges column missing from database, saving without it:', error);
+          const safePayload = { ...payload };
+          delete safePayload.shipping_charges;
+          const retryRes = await state.supabaseClient
+            .from('sarees')
+            .update(safePayload)
+            .eq('id', state.editingSareeId);
+          error = retryRes.error;
+        }
+
         if (error) throw error;
         showToast(`Saree #${state.editingSareeId} updated successfully!`);
       } else {
-        const { error } = await state.supabaseClient
+        let { error } = await state.supabaseClient
           .from('sarees')
           .insert([payload]);
+
+        // Safe retry if shipping_charges column has not been added to Supabase table yet
+        if (error && error.message && error.message.includes('shipping_charges')) {
+          console.warn('shipping_charges column missing from database, saving without it:', error);
+          const safePayload = { ...payload };
+          delete safePayload.shipping_charges;
+          const retryRes = await state.supabaseClient
+            .from('sarees')
+            .insert([safePayload]);
+          error = retryRes.error;
+        }
 
         if (error) throw error;
         showToast('New saree added to catalog successfully!');
@@ -907,6 +966,7 @@
     state.videoData = null;
     dom.sareeForm.reset();
     dom.sareeEditId.value = '';
+    if (dom.inputShipping) dom.inputShipping.value = '0';
     dom.formSectionTitle.textContent = 'Add New Saree';
     dom.formSectionDesc.textContent = 'Add saree specifications, photos, and drape video';
     dom.formTabLabel.textContent = 'Add New Saree';
@@ -921,6 +981,9 @@
     dom.sareeEditId.value = saree.id;
     dom.inputName.value = saree.name || '';
     dom.inputPrice.value = saree.price || 0;
+    if (dom.inputShipping) {
+      dom.inputShipping.value = saree.shipping_charges !== undefined && saree.shipping_charges !== null ? saree.shipping_charges : 0;
+    }
     dom.inputFabric.value = saree.fabric || '';
     dom.inputCategory.value = saree.category || '';
     dom.inputStatus.value = saree.status || 'Available';
@@ -966,6 +1029,9 @@
     resetForm();
     dom.inputName.value = `${saree.name} (Copy)`;
     dom.inputPrice.value = saree.price || 0;
+    if (dom.inputShipping) {
+      dom.inputShipping.value = saree.shipping_charges || 0;
+    }
     dom.inputFabric.value = saree.fabric || '';
     dom.inputCategory.value = saree.category || '';
     dom.inputStatus.value = 'Available';
@@ -1023,6 +1089,8 @@
 
       populateAdminCategories();
       renderAdminList();
+      populateReviewSareeDropdown();
+      loadAllReviews();
     } catch (err) {
       console.error('Failed to load sarees for admin:', err);
       dom.adminSareeList.innerHTML = `
@@ -1070,6 +1138,7 @@
       const isSold = saree.status === 'Sold';
       const mainImg = (saree.images && saree.images.length > 0) ? saree.images[0] : PLACEHOLDER_IMG;
       const hasVideo = !!saree.video_url;
+      const reviewCount = state.allReviews.filter(r => String(r.saree_id) === String(saree.id)).length;
 
       return `
         <div class="admin-saree-row" data-id="${saree.id}">
@@ -1081,7 +1150,12 @@
             <div class="admin-saree-details">
               <span class="admin-saree-title">#${saree.id} - ${escapeHtml(saree.name)}</span>
               <span class="admin-saree-sub">${escapeHtml(saree.fabric || 'Silk')} • ${escapeHtml(saree.category || 'Handloom')}</span>
-              <span class="admin-saree-price">${formatPrice(saree.price)}</span>
+              <div style="display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.15rem;">
+                <span class="admin-saree-price">${formatPrice(saree.price)}</span>
+                ${Number(saree.shipping_charges) > 0 
+                  ? `<span style="font-size: 0.72rem; color: #475569; font-weight: 600; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">+ ${formatPrice(saree.shipping_charges)} shipping</span>` 
+                  : `<span style="font-size: 0.72rem; color: #15803d; font-weight: 600; background: #dcfce7; padding: 2px 6px; border-radius: 4px;">🚚 Free shipping</span>`}
+              </div>
             </div>
           </div>
 
@@ -1091,6 +1165,9 @@
             </button>
             <button type="button" class="btn-admin-action btn-edit-saree" data-id="${saree.id}">
               ✏️ Edit
+            </button>
+            <button type="button" class="btn-admin-action btn-manage-reviews" data-id="${saree.id}" title="Manage Reviews for this Saree">
+              ⭐ Reviews (${reviewCount})
             </button>
             <button type="button" class="btn-admin-action btn-duplicate-saree" data-id="${saree.id}">
               📋 Duplicate
@@ -1116,6 +1193,17 @@
         const id = btn.getAttribute('data-id');
         const saree = state.allSarees.find(s => String(s.id) === String(id));
         if (saree) startEditSaree(saree);
+      });
+    });
+
+    dom.adminSareeList.querySelectorAll('.btn-manage-reviews').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        switchToTab('reviews');
+        if (dom.reviewSareeSelect) {
+          dom.reviewSareeSelect.value = id;
+          onReviewSareeChange(id);
+        }
       });
     });
 
@@ -1205,6 +1293,428 @@
     } catch (err) {
       console.error('Failed to delete saree:', err);
       showToast('Error deleting saree: ' + err.message);
+    }
+  }
+
+  // ----------------------------------------------------------------------------
+  // CUSTOMER REVIEWS MANAGEMENT (ADMIN-ONLY)
+  // ----------------------------------------------------------------------------
+
+  async function loadAllReviews() {
+    if (!state.supabaseClient) return;
+
+    try {
+      const { data, error } = await state.supabaseClient
+        .from('saree_reviews')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('saree_reviews fetch notice (table may need setup):', error.message);
+        // Fallback to locally cached reviews
+        const local = localStorage.getItem('msc_local_reviews');
+        state.allReviews = local ? JSON.parse(local) : [];
+      } else {
+        state.allReviews = data || [];
+      }
+
+      if (dom.totalReviewsCount) {
+        dom.totalReviewsCount.textContent = state.allReviews.length;
+      }
+
+      if (state.selectedReviewSareeId) {
+        renderSelectedSareeReviews(state.selectedReviewSareeId);
+      }
+    } catch (e) {
+      console.warn('loadAllReviews error:', e);
+    }
+  }
+
+  function populateReviewSareeDropdown() {
+    if (!dom.reviewSareeSelect) return;
+    const currentVal = dom.reviewSareeSelect.value;
+    dom.reviewSareeSelect.innerHTML = `
+      <option value="">-- Choose a Saree from Catalog (${state.allSarees.length} sarees) --</option>
+      ${state.allSarees.map(s => {
+        const count = state.allReviews.filter(r => String(r.saree_id) === String(s.id)).length;
+        return `<option value="${s.id}">#${s.id} - ${escapeHtml(s.name)} (${count} reviews)</option>`;
+      }).join('')}
+    `;
+
+    if (currentVal && state.allSarees.some(s => String(s.id) === String(currentVal))) {
+      dom.reviewSareeSelect.value = currentVal;
+    }
+  }
+
+  function onReviewSareeChange(sareeId) {
+    state.selectedReviewSareeId = sareeId ? String(sareeId) : null;
+    if (!sareeId) {
+      if (dom.reviewFormWrap) dom.reviewFormWrap.style.display = 'none';
+      return;
+    }
+
+    if (dom.reviewFormWrap) dom.reviewFormWrap.style.display = 'block';
+    resetReviewForm();
+
+    const saree = state.allSarees.find(s => String(s.id) === String(sareeId));
+    if (dom.reviewFormTitle && saree) {
+      dom.reviewFormTitle.textContent = `Add Customer Review for #${saree.id} - ${saree.name}`;
+    }
+
+    renderSelectedSareeReviews(sareeId);
+  }
+
+  function resetReviewForm() {
+    state.editingReviewId = null;
+    state.currentReviewPhotos = [];
+    if (dom.sareeReviewForm) dom.sareeReviewForm.reset();
+    if (dom.reviewEditId) dom.reviewEditId.value = '';
+    if (dom.btnCancelReviewEdit) dom.btnCancelReviewEdit.style.display = 'none';
+    if (dom.btnSaveReview) dom.btnSaveReview.textContent = '💾 Save Review';
+    if (dom.inputReviewPhotoUrl) dom.inputReviewPhotoUrl.value = '';
+    if (dom.inputReviewRating) dom.inputReviewRating.value = '5';
+    renderReviewPhotoPreviews();
+  }
+
+  function renderReviewPhotoPreviews() {
+    if (!dom.reviewPhotosPreviewGrid) return;
+    if (state.currentReviewPhotos.length === 0) {
+      dom.reviewPhotosPreviewGrid.innerHTML = '';
+      return;
+    }
+
+    dom.reviewPhotosPreviewGrid.innerHTML = state.currentReviewPhotos.map((photo, idx) => {
+      const src = photo.previewUrl || photo.url;
+      return `
+        <div class="photo-preview-card" style="width: 80px; height: 100px; position: relative;">
+          <img src="${escapeHtml(src)}" alt="Review Photo ${idx + 1}" class="photo-preview-img" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;">
+          <button type="button" class="btn-photo-action btn-del-review-photo" data-index="${idx}" style="position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; background: rgba(0,0,0,0.7); color: #fff; border-radius: 50%; font-size: 13px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer;" title="Remove">
+            ×
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    dom.reviewPhotosPreviewGrid.querySelectorAll('.btn-del-review-photo').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-index'), 10);
+        state.currentReviewPhotos.splice(idx, 1);
+        renderReviewPhotoPreviews();
+      });
+    });
+  }
+
+  async function handleReviewPhotosSelected(fileList) {
+    if (!fileList || fileList.length === 0) return;
+
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      if (!file.type.startsWith('image/')) continue;
+
+      try {
+        const { blob, previewUrl } = await compressImage(file, 1200, 0.82);
+        state.currentReviewPhotos.push({
+          type: 'new',
+          file: file,
+          blob: blob,
+          previewUrl: previewUrl
+        });
+      } catch (err) {
+        console.error('Failed to compress review photo:', err);
+      }
+    }
+
+    renderReviewPhotoPreviews();
+  }
+
+  async function uploadPendingReviewPhotos() {
+    const bucket = CONFIG.STORAGE_BUCKET || 'saree-images';
+    const finalUrls = [];
+
+    for (let i = 0; i < state.currentReviewPhotos.length; i++) {
+      const item = state.currentReviewPhotos[i];
+
+      if (item.type === 'existing' || item.type === 'link') {
+        finalUrls.push(item.url);
+      } else if (item.type === 'new' && item.blob) {
+        const timestamp = Date.now();
+        const rand = Math.random().toString(36).substring(2, 7);
+        const filename = `review_${timestamp}_${rand}.jpg`;
+
+        if (state.supabaseClient) {
+          const { error } = await state.supabaseClient.storage
+            .from(bucket)
+            .upload(filename, item.blob, {
+              contentType: 'image/jpeg',
+              upsert: false
+            });
+
+          if (!error) {
+            const { data: urlData } = state.supabaseClient.storage
+              .from(bucket)
+              .getPublicUrl(filename);
+            if (urlData && urlData.publicUrl) {
+              finalUrls.push(urlData.publicUrl);
+            }
+          } else {
+            console.warn('Storage upload error for review photo:', error.message);
+          }
+        }
+      }
+    }
+
+    return finalUrls;
+  }
+
+  function renderSelectedSareeReviews(sareeId) {
+    if (!dom.selectedSareeReviewsList) return;
+    const reviews = state.allReviews.filter(r => String(r.saree_id) === String(sareeId));
+
+    if (dom.selectedSareeReviewsCount) {
+      dom.selectedSareeReviewsCount.textContent = reviews.length;
+    }
+
+    if (reviews.length === 0) {
+      dom.selectedSareeReviewsList.innerHTML = `
+        <div style="text-align: center; padding: 2rem 1rem; color: #94a3b8; font-size: 0.88rem; background: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1;">
+          No customer reviews added yet for this saree.<br>
+          Use the form above to add a verified feedback, photos, and video.
+        </div>
+      `;
+      return;
+    }
+
+    dom.selectedSareeReviewsList.innerHTML = reviews.map(rev => {
+      const stars = '⭐'.repeat(rev.rating || 5);
+      const photos = Array.isArray(rev.photos) ? rev.photos : [];
+      const photosHtml = photos.length > 0 ? `
+        <div style="display: flex; gap: 0.5rem; margin-top: 0.6rem; flex-wrap: wrap;">
+          ${photos.map(p => `
+            <a href="${escapeHtml(p)}" target="_blank" rel="noopener noreferrer">
+              <img src="${escapeHtml(p)}" alt="Customer Photo" style="width: 55px; height: 75px; object-fit: cover; border-radius: 4px; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            </a>
+          `).join('')}
+        </div>
+      ` : '';
+
+      const videoHtml = rev.video_url ? `
+        <div style="margin-top: 0.5rem; font-size: 0.76rem; color: #475569;">
+          🎥 <strong>Video Review:</strong> 
+          <a href="${escapeHtml(rev.video_url)}" target="_blank" rel="noopener noreferrer" style="color: #0284c7; text-decoration: underline; font-weight: 600;">
+            ${escapeHtml(rev.video_url.substring(0, 45))}... &rarr;
+          </a>
+        </div>
+      ` : '';
+
+      return `
+        <div style="padding: 1rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 0.75rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <strong style="font-size: 0.95rem; color: #1e293b;">${escapeHtml(rev.customer_name)}</strong>
+                <span style="font-size: 0.72rem; color: #16a34a; background: #dcfce7; padding: 2px 6px; border-radius: 4px; font-weight: 600;">✓ Verified</span>
+                <span style="font-size: 0.8rem;">${stars}</span>
+              </div>
+              <span style="font-size: 0.72rem; color: #94a3b8;">${formatDate(rev.created_at)}</span>
+            </div>
+
+            <div style="display: flex; gap: 0.4rem;">
+              <button type="button" class="btn-admin-action btn-edit-review" data-id="${rev.id}">
+                ✏️ Edit
+              </button>
+              <button type="button" class="btn-admin-action btn-delete btn-delete-review" data-id="${rev.id}">
+                🗑️ Delete
+              </button>
+            </div>
+          </div>
+
+          <p style="font-size: 0.88rem; color: #334155; line-height: 1.45; margin: 0.6rem 0 0 0; background: #f8fafc; padding: 0.65rem 0.85rem; border-radius: 6px;">
+            "${escapeHtml(rev.comment)}"
+          </p>
+
+          ${photosHtml}
+          ${videoHtml}
+        </div>
+      `;
+    }).join('');
+
+    dom.selectedSareeReviewsList.querySelectorAll('.btn-edit-review').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const rev = state.allReviews.find(r => String(r.id) === String(id));
+        if (rev) startEditReview(rev);
+      });
+    });
+
+    dom.selectedSareeReviewsList.querySelectorAll('.btn-delete-review').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        deleteReview(id);
+      });
+    });
+  }
+
+  async function handleReviewSubmit(e) {
+    e.preventDefault();
+    if (!state.currentUser) {
+      showToast('You must be signed in to add reviews.');
+      return;
+    }
+
+    const sareeId = state.selectedReviewSareeId;
+    if (!sareeId) {
+      showToast('Please select a saree first.');
+      return;
+    }
+
+    const name = dom.inputReviewName.value.trim();
+    const rating = parseInt(dom.inputReviewRating.value, 10) || 5;
+    const comment = dom.inputReviewComment.value.trim();
+    const videoUrl = dom.inputReviewVideoUrl ? dom.inputReviewVideoUrl.value.trim() : '';
+
+    if (!name) {
+      showToast('Please enter the customer name.');
+      dom.inputReviewName.focus();
+      return;
+    }
+
+    if (!comment) {
+      showToast('Please enter the review comment.');
+      dom.inputReviewComment.focus();
+      return;
+    }
+
+    dom.btnSaveReview.disabled = true;
+    dom.btnSaveReview.textContent = 'Saving Review...';
+
+    try {
+      const uploadedPhotos = await uploadPendingReviewPhotos();
+
+      const payload = {
+        saree_id: sareeId,
+        customer_name: name,
+        rating: rating,
+        comment: comment,
+        photos: uploadedPhotos,
+        video_url: videoUrl || null
+      };
+
+      if (state.editingReviewId) {
+        if (state.supabaseClient) {
+          const { error } = await state.supabaseClient
+            .from('saree_reviews')
+            .update(payload)
+            .eq('id', state.editingReviewId);
+
+          if (error) console.warn('Supabase review update notice:', error.message);
+        }
+
+        const idx = state.allReviews.findIndex(r => String(r.id) === String(state.editingReviewId));
+        if (idx !== -1) {
+          state.allReviews[idx] = { ...state.allReviews[idx], ...payload };
+        }
+        showToast('Review updated successfully!');
+      } else {
+        let insertedReview = null;
+        if (state.supabaseClient) {
+          const { data, error } = await state.supabaseClient
+            .from('saree_reviews')
+            .insert([payload])
+            .select();
+
+          if (!error && data && data.length > 0) {
+            insertedReview = data[0];
+          } else if (error) {
+            console.warn('Supabase review insert notice (table might need creation):', error.message);
+          }
+        }
+
+        if (!insertedReview) {
+          insertedReview = {
+            id: Date.now(),
+            ...payload,
+            created_at: new Date().toISOString()
+          };
+        }
+
+        state.allReviews.unshift(insertedReview);
+        showToast('Customer review added successfully!');
+      }
+
+      try {
+        localStorage.setItem('msc_local_reviews', JSON.stringify(state.allReviews));
+        sessionStorage.removeItem('msc_supabase_sarees_cache_v2');
+      } catch (e) {}
+
+      if (dom.totalReviewsCount) {
+        dom.totalReviewsCount.textContent = state.allReviews.length;
+      }
+
+      resetReviewForm();
+      renderSelectedSareeReviews(sareeId);
+      renderAdminList();
+
+    } catch (err) {
+      console.error('Error saving review:', err);
+      showToast('Error saving review: ' + err.message);
+    } finally {
+      dom.btnSaveReview.disabled = false;
+      dom.btnSaveReview.textContent = '💾 Save Review';
+    }
+  }
+
+  function startEditReview(review) {
+    state.editingReviewId = review.id;
+    if (dom.reviewEditId) dom.reviewEditId.value = review.id;
+    if (dom.inputReviewName) dom.inputReviewName.value = review.customer_name || '';
+    if (dom.inputReviewRating) dom.inputReviewRating.value = String(review.rating || 5);
+    if (dom.inputReviewComment) dom.inputReviewComment.value = review.comment || '';
+    if (dom.inputReviewVideoUrl) dom.inputReviewVideoUrl.value = review.video_url || '';
+
+    state.currentReviewPhotos = (Array.isArray(review.photos) ? review.photos : []).map(url => ({
+      type: 'existing',
+      url: url,
+      previewUrl: url
+    }));
+    renderReviewPhotoPreviews();
+
+    if (dom.reviewFormTitle) dom.reviewFormTitle.textContent = `Edit Review #${review.id}`;
+    if (dom.btnSaveReview) dom.btnSaveReview.textContent = 'Update Review';
+    if (dom.btnCancelReviewEdit) dom.btnCancelReviewEdit.style.display = 'inline-flex';
+
+    dom.sareeReviewForm.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  async function deleteReview(reviewId) {
+    if (!confirm('Are you sure you want to delete this customer review?')) return;
+
+    try {
+      if (state.supabaseClient) {
+        const { error } = await state.supabaseClient
+          .from('saree_reviews')
+          .delete()
+          .eq('id', reviewId);
+        if (error) console.warn('Supabase review delete notice:', error.message);
+      }
+
+      state.allReviews = state.allReviews.filter(r => String(r.id) !== String(reviewId));
+      try {
+        localStorage.setItem('msc_local_reviews', JSON.stringify(state.allReviews));
+        sessionStorage.removeItem('msc_supabase_sarees_cache_v2');
+      } catch (e) {}
+
+      if (dom.totalReviewsCount) {
+        dom.totalReviewsCount.textContent = state.allReviews.length;
+      }
+
+      showToast('Review deleted successfully.');
+      if (state.selectedReviewSareeId) {
+        renderSelectedSareeReviews(state.selectedReviewSareeId);
+      }
+      renderAdminList();
+    } catch (e) {
+      console.error('Failed to delete review:', e);
+      showToast('Failed to delete review.');
     }
   }
 
@@ -1637,29 +2147,19 @@
   // TAB SWITCHER
   // ----------------------------------------------------------------------------
   function switchToTab(tabName) {
-    if (tabName === 'form') {
-      dom.tabFormBtn.classList.add('active');
-      dom.tabListBtn.classList.remove('active');
-      if (dom.tabCleanupBtn) dom.tabCleanupBtn.classList.remove('active');
-      dom.tabFormContent.style.display = 'block';
-      dom.tabListContent.style.display = 'none';
-      if (dom.tabCleanupContent) dom.tabCleanupContent.style.display = 'none';
-    } else if (tabName === 'list') {
-      dom.tabFormBtn.classList.remove('active');
-      dom.tabListBtn.classList.add('active');
-      if (dom.tabCleanupBtn) dom.tabCleanupBtn.classList.remove('active');
-      dom.tabFormContent.style.display = 'none';
-      dom.tabListContent.style.display = 'block';
-      if (dom.tabCleanupContent) dom.tabCleanupContent.style.display = 'none';
-    } else if (tabName === 'cleanup') {
-      dom.tabFormBtn.classList.remove('active');
-      dom.tabListBtn.classList.remove('active');
-      if (dom.tabCleanupBtn) dom.tabCleanupBtn.classList.add('active');
-      dom.tabFormContent.style.display = 'none';
-      dom.tabListContent.style.display = 'none';
-      if (dom.tabCleanupContent) dom.tabCleanupContent.style.display = 'block';
+    if (dom.tabFormBtn) dom.tabFormBtn.classList.toggle('active', tabName === 'form');
+    if (dom.tabListBtn) dom.tabListBtn.classList.toggle('active', tabName === 'list');
+    if (dom.tabReviewsBtn) dom.tabReviewsBtn.classList.toggle('active', tabName === 'reviews');
+    if (dom.tabCleanupBtn) dom.tabCleanupBtn.classList.toggle('active', tabName === 'cleanup');
 
-      // Auto-scan on first tab opening if never scanned before
+    if (dom.tabFormContent) dom.tabFormContent.style.display = tabName === 'form' ? 'block' : 'none';
+    if (dom.tabListContent) dom.tabListContent.style.display = tabName === 'list' ? 'block' : 'none';
+    if (dom.tabReviewsContent) dom.tabReviewsContent.style.display = tabName === 'reviews' ? 'block' : 'none';
+    if (dom.tabCleanupContent) dom.tabCleanupContent.style.display = tabName === 'cleanup' ? 'block' : 'none';
+
+    if (tabName === 'reviews') {
+      populateReviewSareeDropdown();
+    } else if (tabName === 'cleanup') {
       if (state.orphanFiles === null && !state.isScanningOrphans) {
         scanOrphanFiles();
       }
@@ -1677,7 +2177,41 @@
     // Tabs
     if (dom.tabFormBtn) dom.tabFormBtn.addEventListener('click', () => switchToTab('form'));
     if (dom.tabListBtn) dom.tabListBtn.addEventListener('click', () => switchToTab('list'));
+    if (dom.tabReviewsBtn) dom.tabReviewsBtn.addEventListener('click', () => switchToTab('reviews'));
     if (dom.tabCleanupBtn) dom.tabCleanupBtn.addEventListener('click', () => switchToTab('cleanup'));
+
+    // Reviews
+    if (dom.reviewSareeSelect) {
+      dom.reviewSareeSelect.addEventListener('change', e => onReviewSareeChange(e.target.value));
+    }
+    if (dom.sareeReviewForm) {
+      dom.sareeReviewForm.addEventListener('submit', handleReviewSubmit);
+    }
+    if (dom.btnCancelReviewEdit) {
+      dom.btnCancelReviewEdit.addEventListener('click', resetReviewForm);
+    }
+    if (dom.btnChooseReviewPhotos) {
+      dom.btnChooseReviewPhotos.addEventListener('click', () => dom.reviewPhotoFileInput.click());
+    }
+    if (dom.reviewPhotoFileInput) {
+      dom.reviewPhotoFileInput.addEventListener('change', e => {
+        handleReviewPhotosSelected(e.target.files);
+        dom.reviewPhotoFileInput.value = '';
+      });
+    }
+    if (dom.btnAddReviewPhotoUrl) {
+      dom.btnAddReviewPhotoUrl.addEventListener('click', () => {
+        const url = (dom.inputReviewPhotoUrl ? dom.inputReviewPhotoUrl.value : '').trim();
+        if (!url) return;
+        state.currentReviewPhotos.push({
+          type: 'link',
+          url: url,
+          previewUrl: url
+        });
+        dom.inputReviewPhotoUrl.value = '';
+        renderReviewPhotoPreviews();
+      });
+    }
 
     // Orphan Cleanup
     if (dom.btnScanOrphans) dom.btnScanOrphans.addEventListener('click', scanOrphanFiles);
